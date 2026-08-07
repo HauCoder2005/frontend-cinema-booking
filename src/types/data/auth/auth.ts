@@ -54,6 +54,13 @@
       });
     }
 
+    static exchangeOAuth2Code(code: string) {
+      return this.api.post<IResponse<any>>({
+        url: "/auth/oauth2/exchange",
+        data: { code },
+      });
+    }
+
     static logout() {
       return this.api.post({
         url: "/auth/logout",
