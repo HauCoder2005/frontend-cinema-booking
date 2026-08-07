@@ -192,11 +192,8 @@ export default function BannerSlide() {
       onMouseLeave={() => setIsPaused(false)}
       sx={{
         position: "relative",
-        width: "100vw",
-        left: "50%",
-        right: "50%",
-        marginLeft: "-50vw",
-        marginRight: "-50vw",
+        width: "100%",
+        maxWidth: "100%",
         overflow: "hidden",
         bgcolor: "#090A0C",
         borderRadius: 0,

@@ -332,58 +332,24 @@ export default function AiChatWidget() {
         <Paper
           elevation={0}
           sx={{
-            position:
-              "fixed",
-
-            right: {
-              xs: 12,
-              sm: 28,
-            },
-
-            bottom: {
-              xs: 100,
-              sm: 112,
-            },
-
-            width: {
-              xs:
-                "calc(100vw - 24px)",
-
-              sm: 400,
-            },
-
-            height: {
-              xs: "70vh",
-
-              sm: 560,
-            },
-
-            maxHeight:
-              620,
-
-            zIndex:
-              1500,
-
-            display:
-              "flex",
-
-            flexDirection:
-              "column",
-
-            overflow:
-              "hidden",
-
-            bgcolor:
-              "background.paper",
-
-            border:
-              "1px solid",
-
-            borderColor:
-              "divider",
-
-            borderRadius:
-              "6px",
+            position: "fixed",
+            inset: { xs: 0, sm: "auto" },
+            right: { xs: 0, sm: 28 },
+            bottom: { xs: 0, sm: 112 },
+            width: { xs: "100%", sm: 400 },
+            maxWidth: { xs: "none", sm: 400 },
+            height: { xs: "100dvh", sm: 560 },
+            maxHeight: { xs: "100dvh", sm: 620 },
+            zIndex: 1500,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+            bgcolor: "background.paper",
+            border: { xs: "none", sm: "1px solid" },
+            borderColor: "divider",
+            borderRadius: { xs: 0, sm: "6px" },
+            pb: { xs: "env(safe-area-inset-bottom)", sm: 0 },
+            pt: { xs: "env(safe-area-inset-top)", sm: 0 },
 
             boxShadow:
               "0 24px 70px rgba(0,0,0,0.46)",

@@ -38,7 +38,9 @@ export default function AppDialog({
       PaperProps={{
         sx: {
           borderRadius: "2px",
-          p: 0.5,
+          p: { xs: 0.25, sm: 0.5 },
+          m: { xs: 1, sm: 2 },
+          maxWidth: { xs: "calc(100vw - 16px)", sm: undefined },
           bgcolor: "background.paper",
           backgroundImage: "none",
         },
