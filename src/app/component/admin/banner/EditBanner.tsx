@@ -14,6 +14,7 @@ import { Banner, BannerFormData, useUpdateBannerMutation } from "@/types/data/ho
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
+import { getMediaUrl } from "@/utils/mediaUrl";
 
 export default function EditBanner() {
     const { id } = useParams();
@@ -115,13 +116,7 @@ export default function EditBanner() {
     };
     const getImageSrc = () => {
         if (!previews.banner) return "";
-
-        // If it's already a full URL (blob or http)
-        if (previews.banner.startsWith("blob:") || previews.banner.startsWith("http")) {
-            return previews.banner;
-        }
-
-        return `${urlImage}/${previews.banner}`;
+        return getMediaUrl(previews.banner);
     };
 
 

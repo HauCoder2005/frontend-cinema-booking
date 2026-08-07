@@ -9,6 +9,7 @@ import { formatTime } from "@/utils/helper";
 import { useQuery } from "@tanstack/react-query";
 import { Booking, useRetryPayment } from "@/types/data/booking/booking";
 import { useRouteQuery } from "@/hooks/useRouteQuery";
+import { getMediaUrl } from "@/utils/mediaUrl";
 import { notify } from "@/lib/notifications";
 
 const TicketSuccess = ({ dbData, searchParams }: { dbData?: any; searchParams: ReturnType<typeof useSearchParams> }) => {
@@ -18,7 +19,7 @@ const TicketSuccess = ({ dbData, searchParams }: { dbData?: any; searchParams: R
   const screenName = dbData?.screenName || searchParams.get("screenName") || "";
   const seatList = dbData?.seatList || searchParams.get("seatList") || "";
   const totalPrice = dbData?.totalPrice || searchParams.get("totalPrice");
-  const posterUrl = dbData?.posterUrl ? (process.env.NEXT_PUBLIC_IMAGE_URL + dbData.posterUrl) : null;
+  const posterUrl = dbData?.posterUrl ? getMediaUrl(dbData.posterUrl) : null;
 
   return (
     <div className="min-h-screen bg-[#090A0C] text-white font-display flex flex-col items-center justify-center p-4 md:p-8">

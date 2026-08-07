@@ -1,6 +1,6 @@
 export const appConfig = {
   appName: process.env.NEXT_PUBLIC_APP_NAME || "Cinema Booking",
-  apiEndpoint: process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api",
+  apiEndpoint: process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || "https://api.devblog.io.vn/api",
 
   pageSizeOptions: [10, 20, 50, 100],
   defaultPageSize: 10,

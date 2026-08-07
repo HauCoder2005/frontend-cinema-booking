@@ -25,9 +25,9 @@ import AppErrorState from "@/components/common/AppErrorState";
 import AppButton from "@/components/common/AppButton";
 import Link from "next/link";
 import { ICinema } from "@/types/data/cinema/types";
+import { getMediaUrl } from "@/utils/mediaUrl";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
-const IMAGE_URL = process.env.NEXT_PUBLIC_IMAGE_URL || "http://localhost:8080";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.devblog.io.vn/api";
 
 type CinemaResponse = {
   data: ICinema[];
@@ -61,9 +61,7 @@ export default function CinemaFind() {
   const totalPages = Math.ceil(total / perPage) || 1;
 
   const getFullImageUrl = (imageUrl?: string | null) => {
-    if (!imageUrl) return "/poster/placeholder.jpg";
-    if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) return imageUrl;
-    return `${IMAGE_URL}/${imageUrl}`;
+    return getMediaUrl(imageUrl, "/poster/placeholder.jpg");
   };
 
   return (

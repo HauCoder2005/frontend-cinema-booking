@@ -18,6 +18,7 @@ import dayjs from "dayjs";
 import { IStaff } from "../type";
 import DeletePopup from "../DeletePopup";
 import { useLockStaffMutation, useUnlockStaffMutation } from "../user"; // từ user.ts
+import { getMediaUrl } from "@/utils/mediaUrl";
 
 interface StaffTableProps {
   staffs: IStaff[];
@@ -66,16 +67,11 @@ export default function StaffTable({
     />
   );
 
-  const IMAGE_URL =
-    process.env.NEXT_PUBLIC_IMAGE_URL || "http://localhost:8080";
-
-  const getAvatarUrl = (avatarUrl?: string) => {
-    if (!avatarUrl) return "/default-avatar.png";
-    if (avatarUrl.startsWith("http")) return avatarUrl;
-    if (avatarUrl.startsWith("/"))
-      return `${IMAGE_URL}${avatarUrl}?t=${Date.now()}`;
-    return `${IMAGE_URL}/${avatarUrl}?t=${Date.now()}`;
-  };
+const getAvatarUrl = (avatarUrl?: string) => {
+  if (!avatarUrl) return "/default-avatar.png";
+  const url = getMediaUrl(avatarUrl, "/default-avatar.png");
+  return url.includes("?") ? url : `${url}?t=${Date.now()}`;
+};
 
   const getRoleCode = (staff: IStaff) =>
     String(staff.role || staff.position || "").toUpperCase();

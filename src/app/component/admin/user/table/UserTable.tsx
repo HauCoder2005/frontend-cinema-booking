@@ -19,15 +19,11 @@ import AppStatusBadge from "@/components/common/AppStatusBadge";
 import AppIconButton from "@/components/common/AppIconButton";
 import AppConfirmDialog from "@/components/common/AppConfirmDialog";
 import { notify } from "@/lib/notifications";
-
-const IMAGE_URL = process.env.NEXT_PUBLIC_IMAGE_URL || "http://localhost:8080";
+import { getMediaUrl } from "@/utils/mediaUrl";
 
 const getAvatarUrl = (avatarUrl?: string) => {
   if (!avatarUrl) return "/default-avatar.png";
-  if (avatarUrl.startsWith("http")) return avatarUrl;
-  if (avatarUrl.startsWith("/"))
-    return `${IMAGE_URL}${avatarUrl}`;
-  return `${IMAGE_URL}/${avatarUrl}`;
+  return getMediaUrl(avatarUrl, "/default-avatar.png");
 };
 
 interface UserTableProps {

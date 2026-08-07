@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 
+import { getMediaUrl } from "@/utils/mediaUrl";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
@@ -38,11 +39,6 @@ export default function MovieCard({
   onBookClick,
   className = "",
 }: MovieCardProps) {
-  const imageBaseUrl = (
-    process.env.NEXT_PUBLIC_IMAGE_URL ??
-    "http://localhost:8080"
-  ).replace(/\/+$/, "");
-
   const normalizedStatus = String(status ?? "")
     .trim()
     .toUpperCase()
@@ -55,26 +51,7 @@ export default function MovieCard({
 
   const isNowShowing = normalizedStatus === "NOW_SHOWING";
 
-  const resolvedPosterUrl = (() => {
-    if (!posterUrl?.trim()) {
-      return "/poster/placeholder.jpg";
-    }
-
-    const rawUrl = posterUrl.trim();
-
-    if (
-      rawUrl.startsWith("http://") ||
-      rawUrl.startsWith("https://")
-    ) {
-      return rawUrl;
-    }
-
-    if (rawUrl.startsWith("/")) {
-      return `${imageBaseUrl}${rawUrl}`;
-    }
-
-    return `${imageBaseUrl}/${rawUrl}`;
-  })();
+  const resolvedPosterUrl = getMediaUrl(posterUrl, "/poster/placeholder.jpg");
 
   const movieDetailUrl = `/movies/${id}`;
 

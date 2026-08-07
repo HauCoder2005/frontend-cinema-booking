@@ -45,7 +45,7 @@ export default function LoginPage() {
     const backendUrl =
       process.env.NEXT_PUBLIC_BACKEND_URL ||
       process.env.NEXT_PUBLIC_IMAGE_URL ||
-      "http://localhost:8080";
+      "https://api.devblog.io.vn";
 
     setIsGoogleRedirecting(true);
 
