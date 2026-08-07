@@ -8,6 +8,7 @@ import React, {
   ReactNode,
   useCallback,
 } from "react";
+import { usePathname } from "next/navigation";
 import {
   UserRole,
   Role,
@@ -66,6 +67,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -110,8 +112,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // Prevent calling /users/me automatically on oauth2 callback page.
+    // The oauth2/success page handles the exchange and will call refreshUser explicitly.
+    if (pathname === "/oauth2/success") {
+      // Just keep it in loading state until the page handles the flow.
+      return;
+    }
     initializeAuth();
-  }, [initializeAuth]);
+  }, [initializeAuth, pathname]);
 
   // Lắng hệ sự kiện refresh thất bại từ API interceptor để xóa user state
   useEffect(() => {
