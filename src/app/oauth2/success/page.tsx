@@ -59,16 +59,12 @@ export default function OAuth2SuccessPage() {
         // Step A: Perform one-time code exchange (sets HttpOnly cookies via credentialed request)
         await Auth.exchangeOAuth2Code(code!);
 
-        // Step B: Refresh AuthContext user state
-        await refreshUser();
-
-        // Step C: Fetch user info to determine backend role
-        const meResponse = await Auth.getMe();
-        const userData = meResponse.data?.data || meResponse.data;
+        // Step B: Refresh AuthContext user state and fetch user info
+        const userData = await refreshUser();
 
         if (userData) {
           notify.success("Đăng nhập bằng Google thành công!");
-          const userRole = userData.role || userData.roleName || "CLIENT";
+          const userRole = userData.role || "CLIENT";
           const targetUrl = getRedirectUrlByRole(userRole);
           window.location.assign(targetUrl);
         } else {

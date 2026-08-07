@@ -57,7 +57,7 @@ interface AuthContextType {
   isManagement: boolean;
 
   // Refresh user data
-  refreshUser: () => Promise<void>;
+  refreshUser: () => Promise<User | null>;
 
   // Loading states from mutations
   isLoggingIn: boolean;
@@ -74,13 +74,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   /**
    * Khởi tạo thông tin phiên người dùng từ API /users/me (Dùng HttpOnly Cookie)
    */
-  const initializeAuth = useCallback(async () => {
+  const initializeAuth = useCallback(async (): Promise<User | null> => {
     try {
       const response = await Auth.getMe();
       const userData = response.data?.data || response.data;
 
       if (userData) {
-        setUser({
+        const loggedInUser: User = {
           id: String(userData.id || userData.userId || ""),
           email: userData.email,
           fullName: userData.fullName || userData.full_name || userData.name,
@@ -94,12 +94,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           avatar: userData.avatarUrl || userData.avatar || "",
           createdAt: userData.createdAt || "",
           cinemaId: userData.cinemaId != null ? userData.cinemaId : undefined,
-        });
+        };
+        setUser(loggedInUser);
+        return loggedInUser;
       } else {
         setUser(null);
+        return null;
       }
-    } catch {
+    } catch (error) {
       setUser(null);
+      return null;
     } finally {
       setLoading(false);
     }
@@ -183,8 +187,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   /**
    * Tải lại thông tin người dùng từ server
    */
-  const refreshUser = useCallback(async () => {
-    await initializeAuth();
+  const refreshUser = useCallback(async (): Promise<User | null> => {
+    return await initializeAuth();
   }, [initializeAuth]);
 
   // Computed values
