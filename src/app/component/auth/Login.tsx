@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
+import Alert from "@mui/material/Alert";
 import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
@@ -26,6 +27,15 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isGoogleRedirecting, setIsGoogleRedirecting] = useState(false);
+  const [isInAppBrowser, setIsInAppBrowser] = useState(false);
+
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const ua = navigator.userAgent || "";
+      const isInApp = /FBAN|FBAV|Instagram|Zalo|MicroMessenger/i.test(ua);
+      setIsInAppBrowser(isInApp);
+    }
+  }, []);
 
   React.useEffect(() => {
     const oauthError = searchParams.get("oauthError");
@@ -130,6 +140,12 @@ export default function LoginPage() {
                 Nhập thông tin tài khoản để trải nghiệm đặt vé xem phim trực tuyến
               </Typography>
             </Box>
+
+            {isInAppBrowser && (
+              <Alert severity="warning" sx={{ mb: 3, borderRadius: "2px", fontSize: 13, fontWeight: 600 }}>
+                Bạn đang mở ứng dụng bằng trình duyệt Zalo/Facebook. Trình duyệt này có thể chặn đăng nhập Google. Vui lòng chọn &quot;Mở bằng trình duyệt ngoài&quot; (Chrome/Safari) để đăng nhập Google.
+              </Alert>
+            )}
 
             <Box component="form" onSubmit={handleSubmit} sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
               <AppInput
