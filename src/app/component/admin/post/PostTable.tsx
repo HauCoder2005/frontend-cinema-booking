@@ -16,6 +16,7 @@ import { IPost } from "@/types/data/post/post";
 import EditPostModal from "./modal/EditPostModal";
 import AppStatusBadge from "@/components/common/AppStatusBadge";
 import AppIconButton from "@/components/common/AppIconButton";
+import getMediaUrl from "@/utils/mediaUrl";
 
 interface PostTableProp {
   post: IPost[];
@@ -73,7 +74,7 @@ export default function PostTable({ post, refetchPost }: PostTableProp) {
                         sx={{
                           width: 56,
                           height: 38,
-                          backgroundImage: `url(${urlImage}${item.coverUrl})`,
+                          backgroundImage: `url(${getMediaUrl(item.coverUrl)})`,
                           backgroundSize: "cover",
                           backgroundPosition: "center",
                           borderRadius: "2px",

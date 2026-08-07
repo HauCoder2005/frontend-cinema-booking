@@ -12,6 +12,7 @@ import { Post } from "@/types/data/post/post";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import AppPageHeader from "@/components/common/AppPageHeader";
+import getMediaUrl from "@/utils/mediaUrl";
 import AppButton from "@/components/common/AppButton";
 import AppLoader from "@/components/common/AppLoader";
 
@@ -68,11 +69,7 @@ export default function NewsInfo() {
     ? new Date(post.publishedAt).toLocaleString("vi-VN")
     : "";
 
-  const coverImage = post?.coverUrl?.trim()
-    ? post.coverUrl.startsWith("http")
-      ? post.coverUrl
-      : `${urlImage}/${post.coverUrl.replace(/^\//, "")}`
-    : "/images/news-placeholder.jpg";
+  const coverImage = getMediaUrl(post?.coverUrl, "/images/news-placeholder.jpg");
 
   if (isLoading) {
     return (

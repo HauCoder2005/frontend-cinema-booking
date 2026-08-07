@@ -12,8 +12,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getRedirectUrlByRole } from "@/config/routes.config";
 import { notify } from "@/lib/notifications";
 
-// Global set to guard against React StrictMode double mounts / race conditions
+// Global module-level locks to guard against React StrictMode double mounts / re-renders
 const processedExchangeCodes = new Set<string>();
+let activeExchangeInitiated = false;
 
 export default function OAuth2SuccessPage() {
   const router = useRouter();
@@ -23,6 +24,11 @@ export default function OAuth2SuccessPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    // If an exchange has already been initiated or completed, ignore subsequent re-renders
+    if (activeExchangeInitiated) {
+      return;
+    }
+
     // 1. Extract exchange code from searchParams or raw window location
     let code: string | null = searchParams.get("code");
     if (!code && typeof window !== "undefined") {
@@ -30,21 +36,23 @@ export default function OAuth2SuccessPage() {
       code = urlParams.get("code");
     }
 
-    // 2. Clean URL immediately to prevent storing one-time code in history
-    if (typeof window !== "undefined" && window.history.replaceState) {
-      window.history.replaceState({}, "", "/oauth2/success");
-    }
-
     if (!code) {
       setErrorMessage("Không tìm thấy mã xác thực Google OAuth2.");
       return;
     }
 
-    // 3. Single-use exchange guard
     if (processedExchangeCodes.has(code)) {
       return;
     }
+
+    // Synchronously set lock before any async operations or URL cleanup
+    activeExchangeInitiated = true;
     processedExchangeCodes.add(code);
+
+    // Clean URL immediately so one-time code is not stored in browser history
+    if (typeof window !== "undefined" && window.history.replaceState) {
+      window.history.replaceState({}, "", "/oauth2/success");
+    }
 
     async function processExchange() {
       try {
@@ -109,7 +117,10 @@ export default function OAuth2SuccessPage() {
             color="primary"
             size="large"
             fullWidth
-            onClick={() => router.replace("/login")}
+            onClick={() => {
+              activeExchangeInitiated = false;
+              router.replace("/login");
+            }}
             sx={{
               minHeight: 44,
               borderRadius: 0,

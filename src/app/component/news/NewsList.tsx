@@ -17,6 +17,7 @@ import { useRouteQuery } from "@/hooks/useRouteQuery";
 import AppPageHeader from "@/components/common/AppPageHeader";
 import AppInput from "@/components/common/AppInput";
 import AppSelect from "@/components/common/AppSelect";
+import getMediaUrl from "@/utils/mediaUrl";
 import AppPagination from "@/components/common/AppPagination";
 import AppLoader from "@/components/common/AppLoader";
 import AppEmptyState from "@/components/common/AppEmptyState";
@@ -161,13 +162,7 @@ export default function NewsList() {
                         >
                           <Box
                             component="img"
-                            src={
-                              post.coverUrl?.trim()
-                                ? post.coverUrl.startsWith("http")
-                                  ? post.coverUrl
-                                  : `${urlImage}/${post.coverUrl.replace(/^\//, "")}`
-                                : "/images/news-placeholder.jpg"
-                            }
+                            src={getMediaUrl(post.coverUrl, "/images/news-placeholder.jpg")}
                             alt={post.title}
                             onError={(e) => {
                               const target = e.currentTarget;
