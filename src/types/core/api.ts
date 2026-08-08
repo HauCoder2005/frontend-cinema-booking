@@ -74,6 +74,12 @@ export class Api {
 
   path = "";
 
+  private fallbackAccessToken: string | null = null;
+
+  setFallbackToken(token: string | null) {
+    this.fallbackAccessToken = token;
+  }
+
   /**
    * Khởi tạo API client với cookie credentials và CSRF header
    */
@@ -106,6 +112,11 @@ export class Api {
           "vi";
         reqConfig.headers["X-Lang"] = lang;
       }
+      
+      if (this.fallbackAccessToken) {
+        reqConfig.headers.Authorization = `Bearer ${this.fallbackAccessToken}`;
+      }
+
       return reqConfig;
     });
 

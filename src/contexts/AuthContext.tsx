@@ -125,6 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const handleAuthRefreshFailed = () => {
       setUser(null);
+      Auth.api.setFallbackToken(null);
     };
 
     window.addEventListener("authRefreshFailed", handleAuthRefreshFailed);
@@ -189,6 +190,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("Logout request error:", error);
     } finally {
       setUser(null);
+      Auth.api.setFallbackToken(null);
     }
   };
 

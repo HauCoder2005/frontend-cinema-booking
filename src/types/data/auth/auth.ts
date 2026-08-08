@@ -55,9 +55,16 @@
     }
 
     static exchangeOAuth2Code(code: string) {
-      return this.api.post<IResponse<any>>({
+      return this.api.post<IResponse<{ fallbackCode?: string }>>({
         url: "/auth/oauth2/exchange",
         data: { code },
+      });
+    }
+
+    static fallbackOAuth2(fallbackCode: string) {
+      return this.api.post<IResponse<{ fallbackAccessToken: string }>>({
+        url: "/auth/oauth2/fallback",
+        data: { fallbackCode },
       });
     }
 

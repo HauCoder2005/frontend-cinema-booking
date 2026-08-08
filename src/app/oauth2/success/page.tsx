@@ -57,10 +57,27 @@ export default function OAuth2SuccessPage() {
     async function processExchange() {
       try {
         // Step A: Perform one-time code exchange (sets HttpOnly cookies via credentialed request)
-        await Auth.exchangeOAuth2Code(code!);
+        const exchangeRes = await Auth.exchangeOAuth2Code(code!);
+        const fallbackCode = exchangeRes.data?.data?.fallbackCode;
 
         // Step B: Refresh AuthContext user state and fetch user info
-        const userData = await refreshUser();
+        let userData = await refreshUser();
+
+        // Step C: Fallback mode if cookie test fails and fallback code is available
+        if (!userData && fallbackCode) {
+          try {
+            console.warn("Cookie auth failed, attempting Bearer fallback...");
+            const fallbackRes = await Auth.fallbackOAuth2(fallbackCode);
+            const fallbackToken = fallbackRes.data?.data?.fallbackAccessToken;
+            
+            if (fallbackToken) {
+              Auth.api.setFallbackToken(fallbackToken);
+              userData = await refreshUser(); // Retry fetch with Bearer token
+            }
+          } catch (fallbackErr) {
+            console.error("Fallback auth error:", fallbackErr);
+          }
+        }
 
         if (userData) {
           notify.success("Đăng nhập bằng Google thành công!");
@@ -68,7 +85,7 @@ export default function OAuth2SuccessPage() {
           const targetUrl = getRedirectUrlByRole(userRole);
           window.location.assign(targetUrl);
         } else {
-          setErrorMessage("Không thể xác thực thông tin tài khoản người dùng.");
+          setErrorMessage("Không thể xác thực thông tin tài khoản người dùng. Trình duyệt của bạn có thể không hỗ trợ cookie.");
         }
       } catch (err: any) {
         console.error("OAuth2 code exchange error:", err);
