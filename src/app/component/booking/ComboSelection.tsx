@@ -26,21 +26,14 @@ import {
 } from "@/types/data/booking/booking";
 import StepIndicator from "./StepIndicator";
 import BookingSidebar from "./BookingSidebar";
-import {
-  ArrowBack,
-  KeyboardArrowLeft,
-  KeyboardArrowRight,
-  CheckCircle,
-  Cancel,
-} from "@mui/icons-material";
 import ConfirmBackStep from "../popup/ConfirmBackStep";
 import { Combo, IComboItem } from "@/types/data/combo/combo";
 import { useRouteQuery } from "@/hooks/useRouteQuery";
 import { useCheckVoucherMutation } from "@/types/data/voucher/voucher";
+import { ArrowLeft, Clock, Plus, Minus, Tag, Check, X } from "lucide-react";
 
 const IMAGE_BASE = process.env.NEXT_PUBLIC_IMAGE_URL || "";
 
-/** Map item từ API (chỉ COMBO) sang ICombo dùng trong booking */
 function mapApiComboToBooking(item: IComboItem): ICombo {
   const base = IMAGE_BASE.replace(/\/$/, "");
   const image =
@@ -98,7 +91,6 @@ export default function ComboSelectionStep() {
   const { mutate: releaseSeat } = useReleaseSeatMutation();
   const [now, setNow] = useState(() => Date.now());
 
-  // === VOUCHER STATES ===
   const [voucherInput, setVoucherInput] = useState("");
   const [appliedVoucher, setAppliedVoucher] = useState<{
     code: string;
@@ -118,12 +110,9 @@ export default function ComboSelectionStep() {
     let end = new Date(holdExpiresAt).getTime();
     if (Number.isNaN(end)) return null;
 
-    // Fix timezone offset issue: if backend returns UTC without 'Z' and browser parses as local
     if (now - end > 60000 && !holdExpiresAt.includes("Z") && !holdExpiresAt.includes("+")) {
       const utcEnd = new Date(`${holdExpiresAt}Z`).getTime();
-      if (utcEnd > now) {
-        end = utcEnd;
-      }
+      if (utcEnd > now) end = utcEnd;
     }
     return Math.max(0, Math.floor((end - now) / 1000));
   }, [holdExpiresAt, now]);
@@ -140,12 +129,8 @@ export default function ComboSelectionStep() {
     const merged =
       bookingState.combos.length > 0
         ? apiComboList.map((apiCombo) => {
-            const fromStore = bookingState.combos.find(
-              (c) => c.id === apiCombo.id,
-            );
-            return fromStore
-              ? { ...apiCombo, quantity: fromStore.quantity }
-              : apiCombo;
+            const fromStore = bookingState.combos.find((c) => c.id === apiCombo.id);
+            return fromStore ? { ...apiCombo, quantity: fromStore.quantity } : apiCombo;
           })
         : apiComboList;
     queueMicrotask(() => {
@@ -156,9 +141,7 @@ export default function ComboSelectionStep() {
 
   useEffect(() => {
     if (holdExpiresAt == null) return;
-    const interval = setInterval(() => {
-      setNow(Date.now());
-    }, 1000);
+    const interval = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(interval);
   }, [holdExpiresAt]);
 
@@ -196,10 +179,8 @@ export default function ComboSelectionStep() {
     [combos],
   );
   const subtotalPrice = seatPrice + comboPrice + bookingState.bookingFee;
-  const { mutate: checkVoucher, isPending: isCheckingVoucher } =
-    useCheckVoucherMutation();
+  const { mutate: checkVoucher, isPending: isCheckingVoucher } = useCheckVoucherMutation();
 
-  // === XỬ LÝ NÚT ÁP DỤNG VOUCHER ===
   const handleApplyVoucher = () => {
     const normalizedCode = voucherInput.trim().toUpperCase();
     if (!normalizedCode) {
@@ -208,10 +189,7 @@ export default function ComboSelectionStep() {
     }
 
     checkVoucher(
-      {
-        code: normalizedCode,
-        price: subtotalPrice,
-      },
+      { code: normalizedCode, price: subtotalPrice },
       {
         onSuccess: (res) => {
           const voucherData = res.data;
@@ -260,7 +238,6 @@ export default function ComboSelectionStep() {
       showtimeId: Number(bookingState.showtimeId),
       seatIds,
       combos: combosPayload,
-      // Đẩy mã voucher xuống API tính toán nếu có
       voucherCode: bookingState.voucherCode || "",
     };
 
@@ -300,89 +277,48 @@ export default function ComboSelectionStep() {
   const { mutate: caculateBookingFee } = useCalculateBookingFeeMutation();
 
   return (
-    <div className="min-h-screen bg-[#0f0f1e]">
+    <div className="min-h-screen bg-[#0b0d10] text-slate-200 pb-24 lg:pb-8">
       <StepIndicator currentStep={2} />
 
-      <div className="container mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
-            <div className="mb-8">
-              <h1 className="text-white text-4xl font-bold mb-2">
-                Chọn Combo Của Bạn
-              </h1>
-              <p className="text-gray-400">
-                Chọn combo đồ ăn & thức uống yêu thích của bạn.
-              </p>
-              <button
-                onClick={() => setOpenConfirmBackStep(true)}
-                className="text-white cursor-pointer text-sm bg-[#1a1a2e] p-4 rounded-lg mr-4"
-              >
-                <ArrowBack />
-              </button>
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <div className="lg:col-span-8">
+            {/* Header / Back */}
+            <div className="flex items-center justify-between border-b border-[#1f242d] pb-4 mb-6">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setOpenConfirmBackStep(true)}
+                  className="p-2 rounded-[2px] bg-[#151a22] border border-[#222834] text-slate-400 hover:text-white hover:border-[#dc2626] transition-all cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#ef4444]">
+                    BƯỚC 2
+                  </p>
+                  <h1 className="text-xl font-bold text-white tracking-tight">
+                    Chọn Combo Đồ Ăn & Thức Uống
+                  </h1>
+                </div>
+              </div>
 
-              <div className="bg-[#1a1a2e] rounded-lg p-4 mt-4 inline-flex items-center gap-2">
-                <span className="text-white text-sm">
-                  Ghế đang được giữ trong
-                </span>
-                <span className="text-red-500 font-bold">{timer}</span>
+              {/* Timer Badge */}
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-[2px] bg-[#151a22] border border-[#222834] text-xs">
+                <Clock className="w-3.5 h-3.5 text-red-500" />
+                <span className="text-slate-400 font-medium hidden sm:inline">Giữ ghế:</span>
+                <span className="text-red-500 font-bold tracking-wider">{timer}</span>
               </div>
             </div>
 
-            <div className="space-y-4">
-              {combos.map((combo) => (
-                <div
-                  key={combo.id}
-                  className="bg-[#1a1a2e] rounded-xl p-6 flex items-center gap-6"
-                >
-                  <div className="w-24 h-24 bg-gray-700 rounded-lg overflow-hidden shrink-0">
-                    <img
-                      src={combo.image}
-                      alt={combo.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-
-                  <div className="flex-1">
-                    <h3 className="text-white text-lg font-bold mb-1">
-                      {combo.name}
-                    </h3>
-                    <p className="text-gray-400 text-sm mb-3">
-                      {combo.description}
-                    </p>
-                    <span className="text-red-500 text-xl font-bold">
-                      {combo.price.toLocaleString("vi-VN")}đ
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => updateQuantity(combo.id, -1)}
-                      disabled={combo.quantity === 0}
-                      className="cursor-pointer w-10 h-10 rounded-full bg-gray-700 text-white flex items-center justify-center hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                    >
-                      <KeyboardArrowLeft />
-                    </button>
-
-                    <span className="text-white text-xl font-bold w-8 text-center">
-                      {combo.quantity}
-                    </span>
-
-                    <button
-                      onClick={() => updateQuantity(combo.id, 1)}
-                      className="cursor-pointer w-10 h-10 rounded-full bg-red-600 text-white flex items-center justify-center hover:bg-red-700 transition"
-                    >
-                      <KeyboardArrowRight />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="lg:col-span-1">
-            {/* KHỐI VOUCHER MỚI THÊM */}
-            <div className="bg-[#1a1a2e] rounded-xl p-5 mb-6 border border-white/5">
-              <h3 className="text-white font-bold mb-4">Voucher & Ưu đãi</h3>
+            {/* Voucher Section */}
+            <div className="mb-6 p-4 bg-[#10141a] border border-[#1e242f] rounded-[2px]">
+              <div className="flex items-center gap-2 mb-3">
+                <Tag className="w-4 h-4 text-[#ef4444]" />
+                <span className="text-xs font-bold text-white uppercase tracking-wider">
+                  Mã Giảm Giá / Voucher
+                </span>
+              </div>
 
               {!appliedVoucher ? (
                 <div className="flex gap-2">
@@ -391,48 +327,104 @@ export default function ComboSelectionStep() {
                     value={voucherInput}
                     onChange={(e) => setVoucherInput(e.target.value)}
                     placeholder="Nhập mã voucher"
-                    className="flex-1 bg-[#0f0f1e] border border-white/10 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 uppercase placeholder:normal-case transition-all"
+                    className="flex-1 bg-[#161b22] border border-[#222834] rounded-[2px] px-3 py-2 text-white text-xs uppercase placeholder:normal-case focus:outline-none focus:border-[#dc2626] transition-colors"
                   />
                   <button
+                    type="button"
                     onClick={handleApplyVoucher}
                     disabled={isCheckingVoucher}
-                    className="bg-[#f01436] hover:bg-red-700 text-white px-5 py-2.5 rounded-lg text-sm font-bold transition-colors whitespace-nowrap"
+                    className="bg-[#dc2626] hover:bg-[#b91c1c] disabled:opacity-50 text-white px-4 py-2 rounded-[2px] text-xs font-bold transition-colors cursor-pointer"
                   >
-                    {isCheckingVoucher ? "Đang kiểm tra..." : "Áp dụng"}
+                    {isCheckingVoucher ? "..." : "Áp dụng"}
                   </button>
                 </div>
               ) : (
-                <div className="flex justify-between items-center bg-green-500/10 border border-green-500/20 rounded-lg px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="text-green-500" fontSize="small" />
+                <div className="flex justify-between items-center bg-green-950/30 border border-green-800/40 rounded-[2px] px-3 py-2">
+                  <div className="flex items-center gap-2 text-xs">
+                    <Check className="w-4 h-4 text-green-400" />
                     <div>
-                      <span className="text-white font-bold block leading-none">
-                        {appliedVoucher.code}
-                      </span>
-                      <span className="text-green-400 text-xs">
-                        -{" "}
-                        {appliedVoucher.discountAmount.toLocaleString("vi-VN")}đ
+                      <span className="text-white font-bold block">{appliedVoucher.code}</span>
+                      <span className="text-green-400 text-[11px]">
+                        -{appliedVoucher.discountAmount.toLocaleString("vi-VN")}đ
                       </span>
                     </div>
                   </div>
                   <button
+                    type="button"
                     onClick={handleRemoveVoucher}
-                    className="text-gray-400 hover:text-white transition-colors"
+                    className="text-slate-400 hover:text-white p-1 cursor-pointer"
                   >
-                    <Cancel fontSize="small" />
+                    <X className="w-4 h-4" />
                   </button>
                 </div>
               )}
             </div>
 
+            {/* Combos List */}
+            <div className="space-y-4">
+              {combos.map((combo) => (
+                <div
+                  key={combo.id}
+                  className="bg-[#10141a] border border-[#1e242f] rounded-[2px] p-4 flex items-center gap-4"
+                >
+                  <div className="w-20 h-20 bg-[#161b22] border border-[#1e242f] rounded-[2px] overflow-hidden shrink-0">
+                    <img
+                      src={combo.image}
+                      alt={combo.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-white text-sm font-bold truncate mb-0.5">
+                      {combo.name}
+                    </h3>
+                    <p className="text-slate-400 text-xs line-clamp-2 mb-2">
+                      {combo.description}
+                    </p>
+                    <span className="text-[#ef4444] text-sm font-bold">
+                      {combo.price.toLocaleString("vi-VN")}đ
+                    </span>
+                  </div>
+
+                  {/* Quantity controls */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => updateQuantity(combo.id, -1)}
+                      disabled={combo.quantity === 0}
+                      className="w-7 h-7 rounded-[2px] bg-[#161b22] border border-[#222834] text-white flex items-center justify-center hover:bg-[#202632] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </button>
+
+                    <span className="text-white text-sm font-bold w-6 text-center">
+                      {combo.quantity}
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() => updateQuantity(combo.id, 1)}
+                      className="w-7 h-7 rounded-[2px] bg-[#dc2626] text-white flex items-center justify-center hover:bg-[#b91c1c] cursor-pointer transition-colors"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="lg:col-span-4">
             <BookingSidebar
               step={2}
               actionButton={{
-                label: "TIẾP TỤC",
+                label: "TIẾP TỤC THANH TOÁN",
                 onClick: handleProceed,
               }}
             />
           </div>
+
           <ConfirmBackStep
             open={openConfirmBackStep}
             onClose={() => setOpenConfirmBackStep(false)}

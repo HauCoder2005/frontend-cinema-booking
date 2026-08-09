@@ -46,7 +46,7 @@ export default function BookingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f0f1e] flex flex-col">
+    <div className="min-h-screen bg-[#0b0d10] flex flex-col">
       <div className="flex-1">{renderStep()}</div>
     </div>
   );

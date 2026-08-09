@@ -1,17 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import {
-  Schedule as ScheduleIcon,
-  LocationOn as LocationOnIcon,
-  CalendarMonth as CalendarIcon,
-  Alarm as AlarmIcon,
-  MeetingRoom as RoomIcon,
-  EventSeat as SeatIcon,
-  Info as InfoIcon,
-  Category as CategoryIcon,
-  Fastfood as ComboIcon,
-} from "@mui/icons-material";
 import dayjs from "dayjs";
 import { useAppSelector } from "@/store/hooks";
 import {
@@ -21,6 +10,7 @@ import {
   selectVoucherDiscountAmount,
 } from "@/store/selectors";
 import type { ISeatMap } from "@/types/data/seat/seat";
+import { Film, MapPin, Calendar, Clock, Armchair, Ticket, Tag } from "lucide-react";
 
 const IMAGE_URL = process.env.NEXT_PUBLIC_IMAGE_URL || "";
 
@@ -28,7 +18,6 @@ export type BookingStep = 1 | 2 | 3;
 
 interface BookingSidebarProps {
   step: BookingStep;
-  /** Dữ liệu từ API (step 1). Step 2/3 dùng thông tin từ Redux. */
   seatMapData?: ISeatMap | null;
   actionButton: {
     label: string;
@@ -70,183 +59,182 @@ export default function BookingSidebar({
   const amountLabel = showTotal ? "Tổng thanh toán" : "Tạm tính";
 
   return (
-    <div className="lg:col-span-4 space-y-6">
-      <div className="bg-[#1a1a1a] border border-[#2e2e2e] rounded-xl overflow-hidden shadow-2xl">
-        {/* PHẦN TRÊN: THÔNG TIN PHIM */}
-        <div className="p-6 bg-[#1a1a1a]">
-          <div className="flex gap-4 mb-6">
-            {posterUrl ? (
-              <img
-                alt="Movie Poster"
-                className="w-24 h-36 object-cover rounded shadow-lg border border-[#2e2e2e]"
-                src={posterUrl}
-              />
-            ) : (
-              <div className="w-24 h-36 rounded shadow-lg border border-[#2e2e2e] bg-[#2a2a2a] flex items-center justify-center text-slate-500 text-xs">
-                No poster
-              </div>
-            )}
-            <div className="space-y-1">
-              <h2 className="text-xl font-bold uppercase tracking-tight text-white leading-tight">
-                {movieTitle}
-              </h2>
-              {genre && (
-                <p className="text-[#ef4444] font-bold text-sm">{genre}</p>
+    <>
+      {/* DESKTOP SIDEBAR */}
+      <aside className="hidden lg:block lg:col-span-4">
+        <div className="bg-[#10141a] border border-[#1e242f] rounded-[4px] overflow-hidden sticky top-6 shadow-xl">
+          {/* Header Info */}
+          <div className="p-5">
+            <div className="flex gap-4 mb-4">
+              {posterUrl ? (
+                <img
+                  alt={movieTitle || "Movie Poster"}
+                  className="w-20 h-28 object-cover rounded-[2px] border border-[#1e242f]"
+                  src={posterUrl}
+                />
+              ) : (
+                <div className="w-20 h-28 rounded-[2px] border border-[#1e242f] bg-[#161b22] flex items-center justify-center text-slate-500 text-[10px]">
+                  Poster
+                </div>
               )}
-              <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">
-                {movieTitle}
-              </p>
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-bold text-[#ef4444] uppercase tracking-wider mb-1">
+                  TÓM TẮT ĐẶT VÉ
+                </p>
+                <h3 className="text-lg font-bold text-white leading-tight truncate">
+                  {movieTitle || "Chưa chọn phim"}
+                </h3>
+                {genre && (
+                  <p className="text-xs text-slate-400 mt-1">{genre}</p>
+                )}
+                {duration != null && (
+                  <p className="text-xs text-slate-500 mt-0.5">{duration} phút</p>
+                )}
+              </div>
+            </div>
+
+            <div className="border-t border-[#1e242f] my-4" />
+
+            {/* Movie Details List */}
+            <div className="space-y-3 text-xs">
+              {cinemaName && (
+                <div className="flex justify-between items-center text-slate-300">
+                  <span className="text-slate-400 flex items-center gap-2">
+                    <MapPin className="w-3.5 h-3.5 text-slate-500" />
+                    Rạp chiếu
+                  </span>
+                  <span className="font-semibold text-white text-right truncate max-w-[170px]">
+                    {cinemaName}
+                  </span>
+                </div>
+              )}
+
+              {startTime && (
+                <>
+                  <div className="flex justify-between items-center text-slate-300">
+                    <span className="text-slate-400 flex items-center gap-2">
+                      <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                      Ngày chiếu
+                    </span>
+                    <span className="font-semibold text-white">
+                      {dayjs(startTime).format("DD/MM/YYYY")}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-slate-300">
+                    <span className="text-slate-400 flex items-center gap-2">
+                      <Clock className="w-3.5 h-3.5 text-slate-500" />
+                      Suất chiếu
+                    </span>
+                    <span className="font-semibold text-white">
+                      {dayjs(startTime).format("HH:mm")}
+                    </span>
+                  </div>
+                </>
+              )}
+
+              {roomName && (
+                <div className="flex justify-between items-center text-slate-300">
+                  <span className="text-slate-400 flex items-center gap-2">
+                    <Film className="w-3.5 h-3.5 text-slate-500" />
+                    Phòng
+                  </span>
+                  <span className="font-semibold text-white">{roomName}</span>
+                </div>
+              )}
+
+              <div className="flex justify-between items-start text-slate-300 pt-1">
+                <span className="text-slate-400 flex items-center gap-2">
+                  <Armchair className="w-3.5 h-3.5 text-slate-500" />
+                  Ghế đã chọn
+                </span>
+                <span className="font-bold text-[#ef4444] text-right max-w-[170px]">
+                  {seatsDisplay}
+                </span>
+              </div>
+
+              {/* Combo Summary */}
+              {hasCombos && (
+                <div className="border-t border-[#1e242f] pt-3 mt-3 space-y-2">
+                  <span className="text-slate-400 font-semibold text-[11px] uppercase tracking-wider block">
+                    Combo đồ ăn
+                  </span>
+                  {booking.combos
+                    .filter((c) => c.quantity > 0)
+                    .map((combo) => (
+                      <div
+                        key={combo.id}
+                        className="flex justify-between items-center text-slate-300"
+                      >
+                        <span className="text-slate-300">
+                          {combo.name} x{combo.quantity}
+                        </span>
+                        <span className="font-medium text-white">
+                          {(combo.price * combo.quantity).toLocaleString("vi-VN")}đ
+                        </span>
+                      </div>
+                    ))}
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="border-t border-dashed border-[#333] mb-6" />
-
-          <div className="space-y-5">
-            {genre && (
-              <div className="flex justify-between items-center text-sm">
-                <div className="flex items-center gap-3 text-slate-400">
-                  <CategoryIcon sx={{ fontSize: 20, color: "#94a3b8" }} />
-                  <span className="font-medium">Thể loại</span>
-                </div>
-                <span className="font-semibold text-white">{genre}</span>
-              </div>
-            )}
-
-            {duration != null && (
-              <div className="flex justify-between items-center text-sm">
-                <div className="flex items-center gap-3 text-slate-400">
-                  <ScheduleIcon sx={{ fontSize: 20, color: "#94a3b8" }} />
-                  <span className="font-medium">Thời lượng</span>
-                </div>
-                <span className="font-semibold text-white">
-                  {duration} phút
+          {/* Pricing & CTA */}
+          <div className="p-5 bg-[#0b0d10] border-t border-[#1e242f]">
+            {showVoucherDiscount && (
+              <div className="flex justify-between items-center mb-2 text-xs">
+                <span className="text-slate-400 flex items-center gap-1.5">
+                  <Tag className="w-3.5 h-3.5 text-green-400" />
+                  Voucher
+                </span>
+                <span className="font-semibold text-green-400">
+                  -{voucherDiscountAmount.toLocaleString("vi-VN")}đ
                 </span>
               </div>
             )}
 
-            {cinemaName && (
-              <div className="flex justify-between items-center text-sm">
-                <div className="flex items-center gap-3 text-slate-400">
-                  <LocationOnIcon sx={{ fontSize: 20, color: "#94a3b8" }} />
-                  <span className="font-medium">Rạp chiếu</span>
-                </div>
-                <span className="font-semibold text-white text-right">
-                  {cinemaName}
-                </span>
-              </div>
-            )}
-
-            {startTime && (
-              <>
-                <div className="flex justify-between items-center text-sm">
-                  <div className="flex items-center gap-3 text-slate-400">
-                    <CalendarIcon sx={{ fontSize: 20, color: "#94a3b8" }} />
-                    <span className="font-medium">Ngày chiếu</span>
-                  </div>
-                  <span className="font-semibold text-white">
-                    {dayjs(startTime).format("DD/MM/YYYY")}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-sm">
-                  <div className="flex items-center gap-3 text-slate-400">
-                    <AlarmIcon sx={{ fontSize: 20, color: "#94a3b8" }} />
-                    <span className="font-medium">Giờ chiếu</span>
-                  </div>
-                  <span className="font-semibold text-white">
-                    {dayjs(startTime).format("HH:mm")}
-                  </span>
-                </div>
-              </>
-            )}
-
-            {roomName && (
-              <div className="flex justify-between items-center text-sm">
-                <div className="flex items-center gap-3 text-slate-400">
-                  <RoomIcon sx={{ fontSize: 20, color: "#94a3b8" }} />
-                  <span className="font-medium">Phòng chiếu</span>
-                </div>
-                <span className="font-semibold text-white">{roomName}</span>
-              </div>
-            )}
-
-            <div className="flex justify-between items-start text-sm pt-2">
-              <div className="flex items-center gap-3 text-slate-400">
-                <SeatIcon sx={{ fontSize: 20, color: "#94a3b8" }} />
-                <span className="font-medium">Ghế</span>
-              </div>
-              <span className="font-bold text-[#ef4444] max-w-[180px] text-right">
-                {seatsDisplay}
+            <div className="flex justify-between items-baseline mb-5">
+              <span className="text-xs text-slate-400 font-medium">{amountLabel}</span>
+              <span className="text-2xl font-bold text-white tracking-tight">
+                {amount.toLocaleString("vi-VN")}đ
               </span>
             </div>
 
-            {/* Step 2/3: thêm Combo nếu có */}
-            {hasCombos && (
-              <div className="border-t border-dashed border-[#333] pt-4 mt-2 space-y-3">
-                <div className="flex items-center gap-2 text-slate-400 text-sm font-medium mb-2">
-                  <ComboIcon sx={{ fontSize: 20, color: "#94a3b8" }} />
-                  Combo
-                </div>
-                {booking.combos
-                  .filter((c) => c.quantity > 0)
-                  .map((combo) => (
-                    <div
-                      key={combo.id}
-                      className="flex justify-between items-center text-sm"
-                    >
-                      <span className="text-slate-300">
-                        {combo.name} x{combo.quantity}
-                      </span>
-                      <span className="font-semibold text-white">
-                        {(combo.price * combo.quantity).toLocaleString("vi-VN")}
-                        đ
-                      </span>
-                    </div>
-                  ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* PHẦN DƯỚI: TỔNG TIỀN + NÚT */}
-        <div className="bg-[#111111] p-6 border-t border-[#2e2e2e]">
-          {showVoucherDiscount && (
-            <div className="flex justify-between items-center mb-3 text-sm">
-              <span className="text-slate-400 font-medium">
-                Giảm giá voucher:
-              </span>
-              <span className="font-semibold text-green-400">
-                -{voucherDiscountAmount.toLocaleString("vi-VN")}đ
-              </span>
-            </div>
-          )}
-
-          <div className="flex justify-between items-center mb-6">
-            <span className="text-slate-400 font-medium">{amountLabel}:</span>
-            <span className="text-2xl font-bold text-white tracking-tight">
-              {amount.toLocaleString("vi-VN")}đ
-            </span>
-          </div>
-
-          <div className="flex flex-col gap-3">
             <button
               type="button"
               onClick={actionButton.onClick}
               disabled={actionButton.disabled}
-              className="w-full bg-[#c42d21] hover:bg-[#a3251b] disabled:opacity-50 disabled:cursor-not-allowed text-white py-4 rounded-xl font-bold shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+              className="w-full bg-[#dc2626] hover:bg-[#b91c1c] active:bg-[#991b1b] disabled:opacity-40 disabled:cursor-not-allowed text-white py-3.5 rounded-[2px] font-bold text-sm tracking-wide shadow-md transition-all cursor-pointer"
             >
               {actionButton.label}
             </button>
           </div>
         </div>
-      </div>
+      </aside>
 
-      <div className="bg-[#1a1111] border border-[#3a1a1a] rounded-xl p-4 flex gap-3">
-        <InfoIcon sx={{ color: "#ef4444", fontSize: 20, marginTop: "2px" }} />
-        <p className="text-[13px] text-slate-400 leading-relaxed">
-          Vui lòng xác nhận chính xác thông tin suất chiếu và ghế ngồi. Vé không
-          thể thay đổi sau khi thanh toán thành công.
-        </p>
+      {/* MOBILE BOTTOM BOOKING BAR */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#10141a]/95 backdrop-blur-md border-t border-[#1e242f] p-3 px-4 shadow-2xl">
+        <div className="max-w-md mx-auto flex items-center justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] text-slate-400 font-medium truncate">
+              {booking.seats.length > 0
+                ? `Ghế: ${booking.seats.join(", ")}`
+                : "Chưa chọn ghế"}
+            </p>
+            <p className="text-lg font-bold text-white leading-tight">
+              {amount.toLocaleString("vi-VN")}đ
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={actionButton.onClick}
+            disabled={actionButton.disabled}
+            className="bg-[#dc2626] hover:bg-[#b91c1c] disabled:opacity-40 disabled:cursor-not-allowed text-white px-6 py-3 rounded-[2px] font-bold text-xs uppercase tracking-wider shadow-md transition-all cursor-pointer whitespace-nowrap"
+          >
+            {actionButton.label}
+          </button>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

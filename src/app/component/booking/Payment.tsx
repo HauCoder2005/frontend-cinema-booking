@@ -6,23 +6,24 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setPaymentMethod } from "@/store/bookingSlice";
 import { selectBooking } from "@/store/selectors";
 import BookingSidebar from "./BookingSidebar";
+import StepIndicator from "./StepIndicator";
 import { useCreateBookingMutation } from "@/types/data/booking/booking";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotification } from "@/hooks/useNotification";
+import { CreditCard, CheckCircle2 } from "lucide-react";
 
 const paymentMethods = [
   {
     id: "momo" as const,
-    name: "Thanh toán bằng Momo",
-    description: "Ví điện tử",
-    icon: "M",
-    bankCode: "ATM",
+    name: "Ví điện tử MoMo",
+    description: "Thanh toán nhanh qua ứng dụng MoMo",
+    logoUrl: "/payment/momo.png",
   },
   {
     id: "vnpay" as const,
-    name: "Thanh toán bằng VNPay",
-    description: "Quét mã QR qua ứng dụng ngân hàng",
-    icon: "V",
+    name: "VNPay QR",
+    description: "Quét mã QR qua ứng dụng Ngân hàng",
+    logoUrl: null,
   },
 ];
 
@@ -79,81 +80,86 @@ export default function PaymentMethodStep() {
       });
     }
   };
+
   return (
-    <div className="min-h-screen bg-[#0f0f1e]">
-      <div className="container mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
-            <div className="mb-8">
-              <h1 className="text-white text-4xl font-bold mb-2">
-                Chọn Phương thức Thanh toán
+    <div className="min-h-screen bg-[#0b0d10] text-slate-200 pb-24 lg:pb-8">
+      <StepIndicator currentStep={3} />
+
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <div className="lg:col-span-8">
+            {/* Header */}
+            <div className="border-b border-[#1f242d] pb-4 mb-6">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#ef4444] mb-0.5">
+                BƯỚC 3
+              </p>
+              <h1 className="text-xl font-bold text-white tracking-tight">
+                Phương Thức Thanh Toán
               </h1>
-              <p className="text-gray-400">
-                Vui lòng chọn một trong các phương thức thanh toán dưới đây.
+              <p className="text-xs text-slate-400 mt-1">
+                Vui lòng chọn một phương thức thanh toán để hoàn tất đơn hàng.
               </p>
             </div>
 
-            <div className="space-y-4">
-              {paymentMethods.map((method) => (
-                <button
-                  key={method.id}
-                  onClick={() => handleSelect(method.id)}
-                  className={`w-full bg-[#1a1a2e] border-2 rounded-xl p-6 transition-all hover:border-red-600 ${
-                    selected === method.id
-                      ? "border-red-600"
-                      : "border-transparent"
-                  }`}
-                >
-                  <div className="flex items-center gap-4">
-                    <div
-                      className={`w-16 h-16 rounded-lg flex items-center justify-center text-2xl font-bold ${
-                        method.id === "momo"
-                          ? "bg-pink-600 text-white"
-                          : "bg-blue-600 text-white"
-                      }`}
-                    >
-                      {method.id === "momo" ? (
-                        <img
-                          src="/payment/momo.png"
-                          alt="Momo"
-                          className="w-10 h-10"
-                        />
+            {/* Payment Methods List */}
+            <div className="space-y-3">
+              {paymentMethods.map((method) => {
+                const isSelected = selected === method.id;
+
+                return (
+                  <button
+                    key={method.id}
+                    type="button"
+                    onClick={() => handleSelect(method.id)}
+                    className={`w-full text-left p-4 rounded-[2px] border transition-all cursor-pointer flex items-center justify-between gap-4 ${
+                      isSelected
+                        ? "bg-[#151a22] border-l-4 border-l-[#dc2626] border-y-[#222834] border-r-[#222834] text-white shadow-sm"
+                        : "bg-[#10141a] border-[#1e242f] text-slate-300 hover:border-[#2b3342] hover:bg-[#131820]"
+                    }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      {/* Logo / Icon */}
+                      <div className="w-12 h-12 rounded-[2px] bg-[#161b22] border border-[#222834] flex items-center justify-center shrink-0">
+                        {method.logoUrl ? (
+                          <img
+                            src={method.logoUrl}
+                            alt={method.name}
+                            className="w-7 h-7 object-contain"
+                          />
+                        ) : (
+                          <CreditCard className="w-6 h-6 text-[#ef4444]" />
+                        )}
+                      </div>
+
+                      <div>
+                        <h3 className="text-sm font-bold text-white mb-0.5">
+                          {method.name}
+                        </h3>
+                        <p className="text-xs text-slate-400">
+                          {method.description}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Radio Indicator */}
+                    <div className="shrink-0">
+                      {isSelected ? (
+                        <CheckCircle2 className="w-5 h-5 text-[#ef4444]" />
                       ) : (
-                        <span>{method.icon}</span>
+                        <div className="w-5 h-5 rounded-full border border-slate-600" />
                       )}
                     </div>
-
-                    <div className="flex-1 text-left">
-                      <h3 className="text-white text-lg font-bold mb-1">
-                        {method.name}
-                      </h3>
-                      <p className="text-gray-400 text-sm">
-                        {method.description}
-                      </p>
-                    </div>
-
-                    <div
-                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                        selected === method.id
-                          ? "border-red-600 bg-red-600"
-                          : "border-gray-600"
-                      }`}
-                    >
-                      {selected === method.id && (
-                        <div className="w-3 h-3 bg-white rounded-full"></div>
-                      )}
-                    </div>
-                  </div>
-                </button>
-              ))}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-4">
             <BookingSidebar
               step={3}
               actionButton={{
-                label: "Thanh toán",
+                label: "XÁC NHẬN THANH TOÁN",
                 onClick: handleProceed,
                 disabled: !selected,
               }}
