@@ -53,7 +53,13 @@ function OAuth2SuccessContent() {
           window.history.replaceState({}, "", "/oauth2/success");
         }
 
-        const fallbackCode = exchangeRes.data?.data?.fallbackCode;
+        const resData = exchangeRes.data?.data;
+        const directAccessToken = resData?.accessToken;
+        const fallbackCode = resData?.fallbackCode;
+
+        if (directAccessToken) {
+          Auth.api.setFallbackToken(directAccessToken);
+        }
 
         console.log("[OAUTH-FE] 6 me starting");
         let userData = await refreshUser();

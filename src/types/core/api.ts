@@ -79,6 +79,13 @@ export class Api {
 
   setFallbackToken(token: string | null) {
     this.fallbackAccessToken = token;
+    if (typeof window !== "undefined") {
+      if (token) {
+        localStorage.setItem("fallback_token", token);
+      } else {
+        localStorage.removeItem("fallback_token");
+      }
+    }
   }
 
   setIsLoggingOut(value: boolean) {
@@ -109,7 +116,7 @@ export class Api {
 
     this.http = axios.create(instanceConfig);
 
-    // Request interceptor - Cấu hình ngôn ngữ & thông tin chung (không gửi token thủ công)
+    // Request interceptor - Cấu hình ngôn ngữ & thông tin chung + Bearer Token Fallback
     this.http.interceptors.request.use((reqConfig) => {
       if (typeof window !== "undefined") {
         const lang =
@@ -117,10 +124,12 @@ export class Api {
           localStorage.getItem("lang") ||
           "vi";
         reqConfig.headers["X-Lang"] = lang;
-      }
-      
-      if (this.fallbackAccessToken) {
-        reqConfig.headers.Authorization = `Bearer ${this.fallbackAccessToken}`;
+
+        const token =
+          this.fallbackAccessToken || localStorage.getItem("fallback_token");
+        if (token) {
+          reqConfig.headers.Authorization = `Bearer ${token}`;
+        }
       }
 
       return reqConfig;

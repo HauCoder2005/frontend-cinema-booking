@@ -76,9 +76,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginMutation = useLoginMutation();
 
   /**
-   * Khởi tạo thông tin phiên người dùng từ API /users/me (Dùng HttpOnly Cookie)
+   * Khởi tạo thông tin phiên người dùng từ API /users/me (Dùng HttpOnly Cookie hoặc Bearer Token)
    */
   const initializeAuth = useCallback(async (): Promise<User | null> => {
+    // Restore Bearer token from localStorage vào memory trước khi gọi API
+    // Giải quyết vấn đề cross-domain cookie bị chặn bởi trình duyệt
+    if (typeof window !== "undefined") {
+      const storedToken = localStorage.getItem("fallback_token");
+      if (storedToken) {
+        Auth.api.setFallbackToken(storedToken);
+      }
+    }
+
     try {
       const response = await Auth.getMe();
       const userData = response.data?.data || response.data;
@@ -117,7 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Prevent calling /users/me automatically on oauth2 callback page.
     // The oauth2/success page handles the exchange and will call refreshUser explicitly.
     if (pathname === "/oauth2/success") {
-      // Just keep it in loading state until the page handles the flow.
+      // Keep loading=true until oauth2/success page completes the flow.
       return;
     }
     initializeAuth();
@@ -190,7 +199,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("Logout request error:", error);
     } finally {
       setUser(null);
+      // Xóa Bearer token fallback cả trong memory lẫn localStorage
       Auth.api.setFallbackToken(null);
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("fallback_token");
+      }
       queryClient.clear();
       Auth.api.setIsLoggingOut(false);
     }
