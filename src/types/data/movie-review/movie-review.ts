@@ -1,5 +1,5 @@
 import { Model } from "@/types/core/model";
-import { ICreateReview, IMovieReview, IRatingSummary } from "./type";
+import { ICanReviewResponse, ICreateReview, IMovieReview, IRatingSummary } from "./type";
 import { IPaginateResponse, IResponse } from "@/types/core/api";
 import { ObjectsFactory } from "@/types/core/objectFactory";
 
@@ -14,6 +14,7 @@ export class MovieReview extends Model {
     all: "MOVIE_COMMENT_ALL_QUERY",
     count_rating: "MOVIE_REVIEW_COUNT_RATING_QUERY",
     create_comment: "MOVIE_REVIEW_CREATE_COMMENT_QUERY",
+    can_review: "MOVIE_REVIEW_CAN_REVIEW_QUERY",
   };
 
   static objects = ObjectsFactory.factory<IMovieReview>(modelConfig, this.queryKeys);
@@ -44,6 +45,19 @@ export class MovieReview extends Model {
     };
   }
 
+  static canReview(movieId: number, userId: number) {
+    return {
+      queryKey: [this.queryKeys.can_review, movieId, userId],
+      queryFn: () =>
+        this.api
+          .get<IResponse<ICanReviewResponse>>({
+            url: `/client/reviews/${movieId}/can-review`,
+            params: { userId },
+          })
+          .then((r) => r.data),
+    };
+  }
+
   static createComment(userId: number, movieId: number, rating: number, comment: string) {
     return {
       queryKey: [this.queryKeys.create_comment, userId, movieId, rating, comment],
@@ -58,4 +72,4 @@ export class MovieReview extends Model {
   }
 }
 
-MovieReview.setup();  
+MovieReview.setup();

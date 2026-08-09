@@ -280,7 +280,7 @@ export default function TicketHistory({
                       </Grid>
                     </Box>
 
-                    <Box sx={{ mt: 3, pt: 2, borderTop: "1px solid", borderColor: "divider", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <Box sx={{ mt: 3, pt: 2, borderTop: "1px solid", borderColor: "divider", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 2 }}>
                       <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
                         <Box sx={{ bgcolor: "#ffffff", p: 0.5, borderRadius: 0, display: "inline-flex", border: "1px solid #e2e8f0" }}>
                           <QRCodeSVG value={ticket.bookingCode} size={44} />
@@ -289,6 +289,18 @@ export default function TicketHistory({
                           Mã: {ticket.bookingCode}
                         </Typography>
                       </Box>
+
+                      {ticket.status === "PAID" && ticket.movieId && (
+                        <Link
+                          href={`/movies/${ticket.movieId}`}
+                          onClick={(e) => e.stopPropagation()}
+                          style={{ textDecoration: "none" }}
+                        >
+                          <AppButton variantType="outline" size="small">
+                            Đánh giá phim
+                          </AppButton>
+                        </Link>
+                      )}
                     </Box>
                   </Box>
                 </Paper>

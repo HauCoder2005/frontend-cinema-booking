@@ -14,7 +14,7 @@ import Typography from "@mui/material/Typography";
 
 import { Clock, CalendarDays, Ticket, Film, MapPin, Play, Star } from "lucide-react";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, usePathname, useRouter } from "next/navigation";
 
 import {
@@ -344,9 +344,18 @@ export default function MovieDetail({
     MoviePublic.getMovieByCinema(movieIdNum),
   );
 
-  const { data: reviewsResponse } = useQuery(
+  const { data: reviewsResponse, refetch: refetchReviews } = useQuery(
     MovieReview.getAllReviewByMovieId(movieIdNum),
   );
+
+  const userIdNum = user?.id ? Number(user.id) : 0;
+
+  const { data: canReviewResponse, refetch: refetchCanReview } = useQuery({
+    ...MovieReview.canReview(movieIdNum, userIdNum),
+    enabled: Boolean(userIdNum > 0 && movieIdNum > 0),
+  });
+
+  const canReviewData = canReviewResponse?.data;
 
   const { data: ratingSummaryResponse } = useQuery(
     MovieReview.getCountRatingByMovieId(movieIdNum),
@@ -652,36 +661,47 @@ export default function MovieDetail({
     }
   };
 
+  const { mutate: submitReview, isPending: isSubmittingReview } = useMutation({
+    mutationFn: ({ userId, movieId, rating, comment }: { userId: number; movieId: number; rating: number; comment: string }) =>
+      MovieReview.createComment(userId, movieId, rating, comment).queryFn(),
+    onSuccess: (res) => {
+      notify.success(res.message || "Gửi đánh giá thành công.");
+      setCommentInput("");
+      refetchReviews();
+      refetchCanReview();
+    },
+    onError: (err: any) => {
+      notify.error(err?.message || "Không thể gửi đánh giá.");
+    },
+  });
+
   const handleReviewSubmit = (
     event: React.FormEvent<HTMLFormElement>,
   ) => {
     event.preventDefault();
 
     if (!user) {
-      notify.warning(
-        "Vui lòng đăng nhập để gửi đánh giá.",
-      );
-
-      router.push(
-        `/login?redirect=${encodeURIComponent(pathname)}`,
-      );
-
+      notify.warning("Vui lòng đăng nhập để gửi đánh giá.");
+      router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
       return;
     }
 
     if (!commentInput.trim()) {
-      notify.warning(
-        "Vui lòng nhập nội dung nhận xét.",
-      );
-
+      notify.warning("Vui lòng nhập nội dung nhận xét.");
       return;
     }
 
-    notify.success(
-      "Đánh giá của bạn đã được gửi.",
-    );
+    if (canReviewData && !canReviewData.canReview) {
+      notify.warning(canReviewData.reason || "Bạn không đủ điều kiện đánh giá phim này.");
+      return;
+    }
 
-    setCommentInput("");
+    submitReview({
+      userId: Number(user.id),
+      movieId: movieIdNum,
+      rating: ratingInput,
+      comment: commentInput.trim(),
+    });
   };
 
   const handleSelectShowtime = (
@@ -1449,15 +1469,34 @@ export default function MovieDetail({
                   }}
                 />
 
+                {canReviewData?.reason && !canReviewData.canReview && (
+                  <Typography
+                    variant="caption"
+                    color={canReviewData.alreadyReviewed ? "primary.main" : "warning.main"}
+                    sx={{ mb: 2, display: "block", fontWeight: 600 }}
+                  >
+                    {canReviewData.reason}
+                  </Typography>
+                )}
+
                 <AppButton
                   type="submit"
                   variantType="primary"
+                  disabled={!user || isSubmittingReview || (canReviewData && !canReviewData.canReview)}
                   startIcon={<Star size={16} />}
                   sx={{
                     minHeight: 46,
                   }}
                 >
-                  Gửi đánh giá
+                  {isSubmittingReview
+                    ? "Đang gửi..."
+                    : !user
+                    ? "Đăng nhập để đánh giá"
+                    : canReviewData?.alreadyReviewed
+                    ? "Đã đánh giá"
+                    : canReviewData && !canReviewData.canReview
+                    ? "Không thể đánh giá"
+                    : "Gửi đánh giá"}
                 </AppButton>
               </Box>
             </Grid>

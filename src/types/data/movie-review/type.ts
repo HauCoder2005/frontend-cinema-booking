@@ -19,3 +19,12 @@ export interface ICreateReview {
     rating: number;
     comment: string;
 }
+
+export interface ICanReviewResponse {
+    userId: number;
+    movieId: number;
+    canReview: boolean;
+    alreadyReviewed: boolean;
+    reason?: string;
+    reviewAvailableAt?: string;
+}
