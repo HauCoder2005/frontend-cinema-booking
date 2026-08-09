@@ -14,29 +14,6 @@ import { notify } from "@/lib/notifications";
 const ACCESS_TOKEN_KEY = "access_token";
 const REFRESH_TOKEN_KEY = "refresh_token";
 
-/**
- * Reads JWT tokens from the URL hash fragment:
- *   /oauth2/success#access=TOKEN&refresh=TOKEN
- *
- * Hash fragments are NEVER sent to any server — safe to carry JWT.
- * After reading, we immediately clear the hash from the URL bar.
- */
-function readAndClearHashTokens(): { accessToken: string | null; refreshToken: string | null } {
-  if (typeof window === "undefined") return { accessToken: null, refreshToken: null };
-
-  const hash = window.location.hash; // e.g. "#access=eyJ...&refresh=eyJ..."
-  if (!hash || !hash.startsWith("#")) return { accessToken: null, refreshToken: null };
-
-  const params = new URLSearchParams(hash.slice(1)); // remove leading '#'
-  const accessToken = params.get("access");
-  const refreshToken = params.get("refresh");
-
-  // Clear hash from URL bar immediately (don't expose tokens in history)
-  window.history.replaceState({}, "", window.location.pathname);
-
-  return { accessToken, refreshToken };
-}
-
 function OAuth2SuccessContent() {
   const { refreshUser } = useAuth();
 
@@ -49,55 +26,96 @@ function OAuth2SuccessContent() {
     hasExecutedRef.current = true;
 
     async function handleOAuthSuccess() {
-      console.log("[OAUTH-FE] 1 page mounted — reading hash tokens");
+      console.log("[OAUTH_SUCCESS] mounted");
+      console.log("[OAUTH_SUCCESS] href=", window.location.href);
+      console.log("[OAUTH_SUCCESS] search=", window.location.search);
 
-      const { accessToken, refreshToken } = readAndClearHashTokens();
+      // Parse code from query parameter ?code=...
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get("code");
 
-      console.log("[OAUTH-FE] 2 accessToken present=", !!accessToken);
-      console.log("[OAUTH-FE] 2 refreshToken present=", !!refreshToken);
+      // Parse fallback tokens from hash fragment #access=...&refresh=... if code is missing
+      const hash = window.location.hash ? window.location.hash.slice(1) : "";
+      const hashParams = new URLSearchParams(hash);
+      const hashAccess = hashParams.get("access");
+      const hashRefresh = hashParams.get("refresh");
 
-      if (!accessToken || !refreshToken) {
-        console.warn("[OAUTH-FE] No tokens found in URL hash. Possibly direct navigation.");
-        setErrorMessage("Phiên đăng nhập Google không hợp lệ. Vui lòng thử lại.");
+      const codePresent = !!code;
+      const accessPresent = !!hashAccess;
+
+      console.log("[OAUTH_SUCCESS] codePresent=", codePresent);
+      console.log("[OAUTH_SUCCESS] accessPresent=", accessPresent);
+
+      if (!code && !hashAccess) {
+        console.warn("[OAUTH_SUCCESS] Neither code nor hash token found in URL.");
+        setErrorMessage("Phiên đăng nhập Google không hợp lệ hoặc đã hết hạn. Vui lòng thử lại.");
         setLoading(false);
         return;
       }
 
       try {
-        // Store tokens in localStorage for persistence across page reloads
+        let accessToken: string | null = null;
+        let refreshToken: string | null = null;
+
+        if (code) {
+          console.log("[OAUTH_SUCCESS] processingMode=EXCHANGE_CODE");
+          // Exchange one-time code for JWT tokens via POST /api/auth/oauth2/exchange
+          const exchangeRes = await Auth.exchangeOAuth2Code(code);
+          const rawData = exchangeRes as any;
+          const resData = rawData?.data?.data || rawData?.data || rawData;
+          accessToken = resData?.accessToken || null;
+          refreshToken = resData?.refreshToken || null;
+
+          // Clean query code from URL bar
+          window.history.replaceState({}, "", window.location.pathname);
+        } else if (hashAccess) {
+          console.log("[OAUTH_SUCCESS] processingMode=HASH_FRAGMENT");
+          accessToken = hashAccess;
+          refreshToken = hashRefresh;
+
+          // Clean hash from URL bar
+          window.history.replaceState({}, "", window.location.pathname);
+        }
+
+        if (!accessToken) {
+          throw new Error("Không nhận được token từ server.");
+        }
+
+        // Store tokens in localStorage for persistent Bearer authentication
         localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
-        localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-        console.log("[OAUTH-FE] 3 tokens stored in localStorage");
+        if (refreshToken) {
+          localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+        }
+        console.log("[OAUTH_SUCCESS] authStateUpdated");
 
-        // Set Bearer token on the API client so the next /users/me call succeeds
+        // Set Bearer token header on Axios client
         Auth.api.setFallbackToken(accessToken);
-        console.log("[OAUTH-FE] 4 fallback token set on API client");
 
-        // Fetch current user — should succeed with Authorization: Bearer header
-        console.log("[OAUTH-FE] 5 calling /users/me");
+        // Fetch current user from /api/users/me
+        console.log("[OAUTH_SUCCESS] calling refreshUser (/users/me)");
         const userData = await refreshUser();
 
         if (userData) {
-          console.log("[OAUTH-FE] 6 user resolved:", userData.email, "role:", userData.role);
           notify.success("Đăng nhập bằng Google thành công!");
           const targetUrl = getRedirectUrlByRole(userData.role || "CLIENT");
-          console.log("[OAUTH-FE] 7 redirecting to", targetUrl);
+          console.log("[OAUTH_SUCCESS] redirecting to", targetUrl);
           window.location.assign(targetUrl);
         } else {
-          console.error("[OAUTH-FE] 6 /users/me returned null — clearing tokens");
+          console.error("[OAUTH_SUCCESS] /users/me returned null — clearing tokens");
           localStorage.removeItem(ACCESS_TOKEN_KEY);
           localStorage.removeItem(REFRESH_TOKEN_KEY);
           Auth.api.setFallbackToken(null);
-          setErrorMessage("Không thể xác thực tài khoản. Vui lòng thử lại.");
+          setErrorMessage("Không thể lấy thông tin người dùng. Vui lòng thử lại.");
         }
       } catch (err: any) {
-        console.error("[OAUTH-FE] error during OAuth success handling:", err);
+        console.error("[OAUTH_SUCCESS] error during handleOAuthSuccess:", err);
         localStorage.removeItem(ACCESS_TOKEN_KEY);
         localStorage.removeItem(REFRESH_TOKEN_KEY);
         Auth.api.setFallbackToken(null);
         const detail = err?.response?.data?.message || err?.message || "Đã xảy ra lỗi không xác định.";
         setErrorMessage(`Đăng nhập Google thất bại: ${detail}`);
       } finally {
+        console.log("[OAUTH_SUCCESS] finished");
         setLoading(false);
       }
     }

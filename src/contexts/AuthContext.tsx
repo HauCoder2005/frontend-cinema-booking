@@ -127,7 +127,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Prevent calling /users/me automatically on oauth2 callback page.
     // The oauth2/success page handles the exchange and will call refreshUser explicitly.
     if (pathname === "/oauth2/success") {
-      // Keep loading=true until oauth2/success page completes the flow.
+      // Must set loading to false so GlobalRouteGuard allows the success page to render
+      setLoading(false);
       return;
     }
     initializeAuth();
