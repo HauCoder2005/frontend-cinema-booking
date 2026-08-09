@@ -671,7 +671,12 @@ export default function MovieDetail({
       refetchCanReview();
     },
     onError: (err: any) => {
-      notify.error(err?.message || "Không thể gửi đánh giá.");
+      const errMsg =
+        err?.response?.data?.message ||
+        err?.data?.message ||
+        err?.message ||
+        "Không thể gửi đánh giá.";
+      notify.error(errMsg);
     },
   });
 
