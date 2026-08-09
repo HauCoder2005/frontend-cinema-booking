@@ -12,23 +12,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getRedirectUrlByRole } from "@/config/routes.config";
 import { notify } from "@/lib/notifications";
 
-// Global set to prevent processing duplicate code strings
-const processedExchangeCodes = new Set<string>();
-
 export default function OAuth2SuccessPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { refreshUser } = useAuth();
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const hasInitiatedRef = useRef(false);
+  const isExchangingRef = useRef(false);
 
   useEffect(() => {
-    // If exchange has already been initiated for this mount, ignore
-    if (hasInitiatedRef.current) {
-      return;
-    }
-
     // 1. Extract exchange code from searchParams or raw window location
     let code: string | null = searchParams.get("code");
     if (!code && typeof window !== "undefined") {
@@ -37,28 +29,28 @@ export default function OAuth2SuccessPage() {
     }
 
     if (!code) {
-      setErrorMessage("Không tìm thấy mã xác thực Google OAuth2.");
+      if (!isExchangingRef.current) {
+        setErrorMessage("Không tìm thấy mã xác thực Google OAuth2.");
+      }
       return;
     }
 
-    if (processedExchangeCodes.has(code)) {
+    // Prevent double execution for the same mount
+    if (isExchangingRef.current) {
       return;
     }
-
-    // Synchronously set lock before any async operations or URL cleanup
-    hasInitiatedRef.current = true;
-    processedExchangeCodes.add(code);
-
-    // Clean URL immediately so one-time code is not stored in browser history
-    if (typeof window !== "undefined" && window.history.replaceState) {
-      window.history.replaceState({}, "", "/oauth2/success");
-    }
+    isExchangingRef.current = true;
 
     async function processExchange() {
       try {
-        // Step A: Perform one-time code exchange (sets HttpOnly cookies via credentialed request)
+        // Step A: Perform one-time code exchange
         const exchangeRes = await Auth.exchangeOAuth2Code(code!);
         const fallbackCode = exchangeRes.data?.data?.fallbackCode;
+
+        // Clean URL after exchange request is complete
+        if (typeof window !== "undefined" && window.history.replaceState) {
+          window.history.replaceState({}, "", "/oauth2/success");
+        }
 
         // Step B: Refresh AuthContext user state and fetch user info
         let userData = await refreshUser();
@@ -131,7 +123,7 @@ export default function OAuth2SuccessPage() {
             size="large"
             fullWidth
             onClick={() => {
-              hasInitiatedRef.current = false;
+              isExchangingRef.current = false;
               router.replace("/login");
             }}
             sx={{
