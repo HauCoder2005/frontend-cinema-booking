@@ -18,9 +18,12 @@ function OAuth2SuccessContent() {
   const { refreshUser } = useAuth();
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const isExchangingRef = useRef(false);
 
   useEffect(() => {
+    console.log("[OAUTH-FE] 1 page mounted");
+
     // Extract exchange code from searchParams or raw window location
     let code: string | null = searchParams ? searchParams.get("code") : null;
     if (!code && typeof window !== "undefined") {
@@ -28,9 +31,14 @@ function OAuth2SuccessContent() {
       code = urlParams.get("code");
     }
 
+    const hasCode = !!code;
+    console.log(`[OAUTH-FE] 2 code present=${hasCode}`);
+
     if (!code) {
       if (!isExchangingRef.current) {
-        setErrorMessage("Không tìm thấy mã xác thực Google OAuth2.");
+        setErrorMessage("Phiên đăng nhập Google không hợp lệ hoặc không tìm thấy mã xác thực.");
+        setLoading(false);
+        console.log("[OAUTH-FE] FINALLY loading=false");
       }
       return;
     }
@@ -43,8 +51,10 @@ function OAuth2SuccessContent() {
 
     async function processExchange() {
       try {
-        // Step A: Perform one-time code exchange
+        console.log("[OAUTH-FE] 3 exchange starting");
         const exchangeRes = await Auth.exchangeOAuth2Code(code!);
+        console.log("[OAUTH-FE] 4 exchange success");
+
         const fallbackCode = exchangeRes.data?.data?.fallbackCode;
 
         // Clean URL after exchange request is complete
@@ -52,8 +62,14 @@ function OAuth2SuccessContent() {
           window.history.replaceState({}, "", "/oauth2/success");
         }
 
-        // Step B: Refresh AuthContext user state and fetch user info
+        console.log("[OAUTH-FE] 6 me starting");
         let userData = await refreshUser();
+
+        if (userData) {
+          console.log("[OAUTH-FE] 7 me success");
+        } else {
+          console.log("[OAUTH-FE] 8 me failed");
+        }
 
         // Step C: Fallback mode if cookie test fails and fallback code is available
         if (!userData && fallbackCode) {
@@ -64,7 +80,13 @@ function OAuth2SuccessContent() {
             
             if (fallbackToken) {
               Auth.api.setFallbackToken(fallbackToken);
-              userData = await refreshUser(); // Retry fetch with Bearer token
+              console.log("[OAUTH-FE] 6 me starting (bearer retry)");
+              userData = await refreshUser();
+              if (userData) {
+                console.log("[OAUTH-FE] 7 me success (bearer retry)");
+              } else {
+                console.log("[OAUTH-FE] 8 me failed (bearer retry)");
+              }
             }
           } catch (fallbackErr) {
             console.error("Fallback auth error:", fallbackErr);
@@ -72,17 +94,23 @@ function OAuth2SuccessContent() {
         }
 
         if (userData) {
+          console.log("[OAUTH-FE] 9 auth store updated");
           notify.success("Đăng nhập bằng Google thành công!");
           const userRole = userData.role || "CLIENT";
           const targetUrl = getRedirectUrlByRole(userRole);
+          console.log("[OAUTH-FE] 10 redirect starting");
           window.location.assign(targetUrl);
+          console.log("[OAUTH-FE] 11 redirect issued");
         } else {
-          setErrorMessage("Không thể xác thực thông tin tài khoản người dùng. Trình duyệt của bạn có thể không hỗ trợ cookie.");
+          setErrorMessage("Không thể xác thực thông tin tài khoản người dùng.");
         }
       } catch (err: any) {
-        console.error("OAuth2 code exchange error:", err);
+        console.log("[OAUTH-FE] 5 exchange failed", err?.message || err);
         const errorDetail = err?.response?.data?.message || err?.message || "Mã xác thực không hợp lệ hoặc đã hết hạn.";
         setErrorMessage(`Đăng nhập Google thất bại: ${errorDetail}`);
+      } finally {
+        setLoading(false);
+        console.log("[OAUTH-FE] FINALLY loading=false");
       }
     }
 
@@ -135,7 +163,7 @@ function OAuth2SuccessContent() {
             Thử đăng nhập lại
           </Button>
         </Box>
-      ) : (
+      ) : loading ? (
         <Box
           sx={{
             display: "flex",
@@ -149,7 +177,7 @@ function OAuth2SuccessContent() {
             Đang xử lý đăng nhập Google...
           </Typography>
         </Box>
-      )}
+      ) : null}
     </Box>
   );
 }

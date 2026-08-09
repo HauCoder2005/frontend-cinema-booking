@@ -99,6 +99,7 @@ export class Api {
       },
       baseURL: baseUrl || appConfig.apiEndpoint,
       withCredentials: true,
+      timeout: 15000,
       xsrfCookieName: "XSRF-TOKEN",
       xsrfHeaderName: "X-XSRF-TOKEN",
       paramsSerializer: {
@@ -143,10 +144,23 @@ export class Api {
         const isAuthEndpoint =
           originalRequest.url?.includes("/auth/login") ||
           originalRequest.url?.includes("/auth/refresh") ||
-          originalRequest.url?.includes("/auth/logout");
+          originalRequest.url?.includes("/auth/logout") ||
+          originalRequest.url?.includes("/auth/oauth2/exchange") ||
+          originalRequest.url?.includes("/auth/oauth2/fallback") ||
+          originalRequest.url?.includes("/auth/register");
+
+        const willRefresh =
+          error.response?.status === 401 &&
+          !originalRequest._retry &&
+          !isAuthEndpoint &&
+          !this.isLoggingOut;
+
+        console.log(
+          `[AUTH-INTERCEPTOR] url=${originalRequest.url} status=${error.response?.status} willRefresh=${willRefresh} retryCount=${originalRequest._retry ? 1 : 0}`
+        );
 
         // Lỗi 401: Thử refresh token đúng 1 lần nếu chưa retry và không phải endpoint auth
-        if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint && !this.isLoggingOut) {
+        if (willRefresh) {
           originalRequest._retry = true;
 
           // Chống refresh storm: Chỉ tạo 1 refresh promise cho nhiều request 401 đồng thời
