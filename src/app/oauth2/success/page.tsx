@@ -57,8 +57,15 @@ function OAuth2SuccessContent() {
         const directAccessToken = resData?.accessToken;
         const fallbackCode = resData?.fallbackCode;
 
+        console.log("[OAUTH-FE] 5 directAccessToken present=", !!directAccessToken, "| first10=", directAccessToken?.slice(0, 10));
+        console.log("[OAUTH-FE] 5 fallbackCode present=", !!fallbackCode);
+
         if (directAccessToken) {
           Auth.api.setFallbackToken(directAccessToken);
+          const stored = typeof window !== "undefined" ? localStorage.getItem("fallback_token") : null;
+          console.log("[OAUTH-FE] 5b token stored in localStorage=", !!stored, "| first10=", stored?.slice(0, 10));
+        } else {
+          console.warn("[OAUTH-FE] 5 NO directAccessToken in exchange response!");
         }
 
         console.log("[OAUTH-FE] 6 me starting");
