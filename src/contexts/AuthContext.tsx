@@ -9,6 +9,7 @@ import React, {
   useCallback,
 } from "react";
 import { usePathname } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   UserRole,
   Role,
@@ -71,6 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const queryClient = useQueryClient();
   const loginMutation = useLoginMutation();
 
   /**
@@ -142,12 +144,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     password: string
   ): Promise<{ success: boolean; error?: string; user?: User }> => {
     try {
-      await loginMutation.mutateAsync({ email, password });
-
-      // Gọi /users/me để lấy thông tin phiên đăng nhập đầy đủ từ cookie vừa thiết lập
-      const meResponse = await Auth.getMe();
-      const userData = meResponse.data?.data || meResponse.data;
-
+      const response = await loginMutation.mutateAsync({ email, password });
+      
+      const userData = response.data;
       if (userData) {
         const loggedInUser: User = {
           id: String(userData.id || userData.userId || ""),
@@ -185,12 +184,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    */
   const logout = async () => {
     try {
+      Auth.api.setIsLoggingOut(true);
       await Auth.logout();
     } catch (error) {
       console.error("Logout request error:", error);
     } finally {
       setUser(null);
       Auth.api.setFallbackToken(null);
+      queryClient.clear();
+      Auth.api.setIsLoggingOut(false);
     }
   };
 

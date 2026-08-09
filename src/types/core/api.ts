@@ -75,9 +75,14 @@ export class Api {
   path = "";
 
   private fallbackAccessToken: string | null = null;
+  private isLoggingOut: boolean = false;
 
   setFallbackToken(token: string | null) {
     this.fallbackAccessToken = token;
+  }
+
+  setIsLoggingOut(value: boolean) {
+    this.isLoggingOut = value;
   }
 
   /**
@@ -141,7 +146,7 @@ export class Api {
           originalRequest.url?.includes("/auth/logout");
 
         // Lỗi 401: Thử refresh token đúng 1 lần nếu chưa retry và không phải endpoint auth
-        if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
+        if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint && !this.isLoggingOut) {
           originalRequest._retry = true;
 
           // Chống refresh storm: Chỉ tạo 1 refresh promise cho nhiều request 401 đồng thời
