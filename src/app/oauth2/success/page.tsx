@@ -49,6 +49,11 @@ function OAuth2SuccessContent() {
     }
     isExchangingRef.current = true;
 
+    // Immediately remove ?code=... from browser URL address bar
+    if (typeof window !== "undefined" && window.history.replaceState) {
+      window.history.replaceState({}, "", "/oauth2/success");
+    }
+
     async function processExchange() {
       try {
         console.log("[OAUTH-FE] 3 exchange starting");
@@ -56,11 +61,6 @@ function OAuth2SuccessContent() {
         console.log("[OAUTH-FE] 4 exchange success");
 
         const fallbackCode = exchangeRes.data?.data?.fallbackCode;
-
-        // Clean URL after exchange request is complete
-        if (typeof window !== "undefined" && window.history.replaceState) {
-          window.history.replaceState({}, "", "/oauth2/success");
-        }
 
         console.log("[OAUTH-FE] 6 me starting");
         let userData = await refreshUser();
