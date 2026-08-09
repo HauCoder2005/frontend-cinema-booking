@@ -76,13 +76,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginMutation = useLoginMutation();
 
   /**
-   * Khởi tạo thông tin phiên người dùng từ API /users/me (Dùng HttpOnly Cookie hoặc Bearer Token)
+   * Khởi tạo thông tin phiên người dùng từ API /users/me
+   * Hỗ trợ cả Bearer Token (cross-domain OAuth2) và HttpOnly Cookie
    */
   const initializeAuth = useCallback(async (): Promise<User | null> => {
-    // Restore Bearer token from localStorage vào memory trước khi gọi API
-    // Giải quyết vấn đề cross-domain cookie bị chặn bởi trình duyệt
+    // Restore Bearer token từ localStorage trước khi gọi API
+    // Xử lý trường hợp cross-domain cookie bị chặn (Google OAuth2 flow)
     if (typeof window !== "undefined") {
-      const storedToken = localStorage.getItem("fallback_token");
+      const storedToken = localStorage.getItem("access_token");
       if (storedToken) {
         Auth.api.setFallbackToken(storedToken);
       }
@@ -132,11 +133,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initializeAuth();
   }, [initializeAuth, pathname]);
 
-  // Lắng hệ sự kiện refresh thất bại từ API interceptor để xóa user state
+  // Lắng nghe sự kiện refresh thất bại từ API interceptor để xóa user state
   useEffect(() => {
     const handleAuthRefreshFailed = () => {
       setUser(null);
       Auth.api.setFallbackToken(null);
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+        localStorage.removeItem("fallback_token");
+      }
     };
 
     window.addEventListener("authRefreshFailed", handleAuthRefreshFailed);
@@ -199,10 +205,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("Logout request error:", error);
     } finally {
       setUser(null);
-      // Xóa Bearer token fallback cả trong memory lẫn localStorage
+      // Xóa token fallback cả trong memory lẫn localStorage
       Auth.api.setFallbackToken(null);
       if (typeof window !== "undefined") {
-        localStorage.removeItem("fallback_token");
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+        localStorage.removeItem("fallback_token"); // legacy cleanup
       }
       queryClient.clear();
       Auth.api.setIsLoggingOut(false);

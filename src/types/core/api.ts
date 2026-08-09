@@ -135,7 +135,7 @@ export class Api {
       return reqConfig;
     });
 
-    // Response interceptor - Xử lý refresh token tập trung bằng HttpOnly Cookie
+    // Response interceptor - Xử lý refresh token cho cả Bearer và Cookie flow
     this.http.interceptors.response.use(
       (response) => {
         if (response.data === 404 || response.data === 403) {
@@ -154,8 +154,7 @@ export class Api {
           originalRequest.url?.includes("/auth/login") ||
           originalRequest.url?.includes("/auth/refresh") ||
           originalRequest.url?.includes("/auth/logout") ||
-          originalRequest.url?.includes("/auth/oauth2/exchange") ||
-          originalRequest.url?.includes("/auth/oauth2/fallback") ||
+          originalRequest.url?.includes("/auth/oauth2/refresh") ||
           originalRequest.url?.includes("/auth/register");
 
         const willRefresh =
@@ -168,32 +167,73 @@ export class Api {
           `[AUTH-INTERCEPTOR] url=${originalRequest.url} status=${error.response?.status} willRefresh=${willRefresh} retryCount=${originalRequest._retry ? 1 : 0}`
         );
 
-        // Lỗi 401: Thử refresh token đúng 1 lần nếu chưa retry và không phải endpoint auth
         if (willRefresh) {
           originalRequest._retry = true;
 
           // Chống refresh storm: Chỉ tạo 1 refresh promise cho nhiều request 401 đồng thời
           if (!refreshPromise) {
-            refreshPromise = axios.post(
-              `${baseUrl || appConfig.apiEndpoint}/auth/refresh`,
-              {},
-              {
-                withCredentials: true,
-                xsrfCookieName: "XSRF-TOKEN",
-                xsrfHeaderName: "X-XSRF-TOKEN",
-              }
-            ).finally(() => {
-              refreshPromise = null;
-            });
+            const storedRefreshToken = typeof window !== "undefined"
+              ? localStorage.getItem("refresh_token")
+              : null;
+
+            if (storedRefreshToken) {
+              // Cross-domain Bearer token flow: send refreshToken in body
+              refreshPromise = axios.post(
+                `${baseUrl || appConfig.apiEndpoint}/auth/oauth2/refresh`,
+                { refreshToken: storedRefreshToken },
+                { headers: { "Content-Type": "application/json" } }
+              ).then((res) => {
+                // Store new tokens in localStorage
+                const newAccess = res.data?.data?.accessToken;
+                const newRefresh = res.data?.data?.refreshToken;
+                if (newAccess) {
+                  localStorage.setItem("access_token", newAccess);
+                  this.fallbackAccessToken = newAccess;
+                }
+                if (newRefresh) {
+                  localStorage.setItem("refresh_token", newRefresh);
+                }
+                return res;
+              }).finally(() => {
+                refreshPromise = null;
+              });
+            } else {
+              // Cookie-based flow fallback (same-domain / email-password login)
+              refreshPromise = axios.post(
+                `${baseUrl || appConfig.apiEndpoint}/auth/refresh`,
+                {},
+                {
+                  withCredentials: true,
+                  xsrfCookieName: "XSRF-TOKEN",
+                  xsrfHeaderName: "X-XSRF-TOKEN",
+                }
+              ).then((res) => {
+                const newAccess = res.data?.data?.accessToken;
+                const newRefresh = res.data?.data?.refreshToken;
+                if (newAccess) {
+                  localStorage.setItem("access_token", newAccess);
+                  this.fallbackAccessToken = newAccess;
+                }
+                if (newRefresh) {
+                  localStorage.setItem("refresh_token", newRefresh);
+                }
+                return res;
+              }).finally(() => {
+                refreshPromise = null;
+              });
+            }
           }
 
           try {
             await refreshPromise;
-            // Refresh thành công, retry request ban đầu với cookie mới
+            // Refresh thành công — cập nhật Bearer header cho request gốc và retry
+            const newToken = this.fallbackAccessToken || localStorage.getItem("access_token");
+            if (newToken && originalRequest.headers) {
+              (originalRequest.headers as Record<string, string>)["Authorization"] = `Bearer ${newToken}`;
+            }
             return this.http(originalRequest);
           } catch (refreshError: any) {
             if (typeof window !== "undefined") {
-              // Thông báo cho AuthContext xóa user state và hủy phiên làm việc
               window.dispatchEvent(new Event("authRefreshFailed"));
             }
             return this.handleError(refreshError);

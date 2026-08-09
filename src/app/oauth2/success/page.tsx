@@ -1,19 +1,43 @@
 "use client";
 
 import { useEffect, useState, useRef, Suspense } from "react";
-import { useRouter } from "next/navigation";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
 import Typography from "@mui/material/Typography";
 import Alert from "@mui/material/Alert";
+import Button from "@mui/material/Button";
 import { Auth } from "@/types/data/auth/auth";
 import { useAuth } from "@/contexts/AuthContext";
 import { getRedirectUrlByRole } from "@/config/routes.config";
 import { notify } from "@/lib/notifications";
 
+const ACCESS_TOKEN_KEY = "access_token";
+const REFRESH_TOKEN_KEY = "refresh_token";
+
+/**
+ * Reads JWT tokens from the URL hash fragment:
+ *   /oauth2/success#access=TOKEN&refresh=TOKEN
+ *
+ * Hash fragments are NEVER sent to any server — safe to carry JWT.
+ * After reading, we immediately clear the hash from the URL bar.
+ */
+function readAndClearHashTokens(): { accessToken: string | null; refreshToken: string | null } {
+  if (typeof window === "undefined") return { accessToken: null, refreshToken: null };
+
+  const hash = window.location.hash; // e.g. "#access=eyJ...&refresh=eyJ..."
+  if (!hash || !hash.startsWith("#")) return { accessToken: null, refreshToken: null };
+
+  const params = new URLSearchParams(hash.slice(1)); // remove leading '#'
+  const accessToken = params.get("access");
+  const refreshToken = params.get("refresh");
+
+  // Clear hash from URL bar immediately (don't expose tokens in history)
+  window.history.replaceState({}, "", window.location.pathname);
+
+  return { accessToken, refreshToken };
+}
+
 function OAuth2SuccessContent() {
-  const router = useRouter();
   const { refreshUser } = useAuth();
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -24,103 +48,61 @@ function OAuth2SuccessContent() {
     if (hasExecutedRef.current) return;
     hasExecutedRef.current = true;
 
-    async function runOAuthExchange() {
-      console.log("[OAUTH-FE] 1 page mounted");
+    async function handleOAuthSuccess() {
+      console.log("[OAUTH-FE] 1 page mounted — reading hash tokens");
 
-      // Extract code directly from window location on client mount
-      let code: string | null = null;
-      if (typeof window !== "undefined") {
-        const urlParams = new URLSearchParams(window.location.search);
-        code = urlParams.get("code");
-      }
+      const { accessToken, refreshToken } = readAndClearHashTokens();
 
-      console.log(`[OAUTH-FE] 2 code present=${!!code}`);
+      console.log("[OAUTH-FE] 2 accessToken present=", !!accessToken);
+      console.log("[OAUTH-FE] 2 refreshToken present=", !!refreshToken);
 
-      if (!code) {
-        console.log("[OAUTH-FE] No code found in URL");
-        setErrorMessage("Phiên đăng nhập Google không hợp lệ hoặc không tìm thấy mã xác thực.");
+      if (!accessToken || !refreshToken) {
+        console.warn("[OAUTH-FE] No tokens found in URL hash. Possibly direct navigation.");
+        setErrorMessage("Phiên đăng nhập Google không hợp lệ. Vui lòng thử lại.");
         setLoading(false);
         return;
       }
 
       try {
-        console.log("[OAUTH-FE] 3 exchange starting");
-        const exchangeRes = await Auth.exchangeOAuth2Code(code);
-        console.log("[OAUTH-FE] 4 exchange success");
+        // Store tokens in localStorage for persistence across page reloads
+        localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+        localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+        console.log("[OAUTH-FE] 3 tokens stored in localStorage");
 
-        // Clean code parameter from browser URL bar after successful exchange call
-        if (typeof window !== "undefined" && window.history && window.history.replaceState) {
-          window.history.replaceState({}, "", "/oauth2/success");
-        }
+        // Set Bearer token on the API client so the next /users/me call succeeds
+        Auth.api.setFallbackToken(accessToken);
+        console.log("[OAUTH-FE] 4 fallback token set on API client");
 
-        const resData = exchangeRes.data?.data;
-        const directAccessToken = resData?.accessToken;
-        const fallbackCode = resData?.fallbackCode;
-
-        console.log("[OAUTH-FE] 5 directAccessToken present=", !!directAccessToken, "| first10=", directAccessToken?.slice(0, 10));
-        console.log("[OAUTH-FE] 5 fallbackCode present=", !!fallbackCode);
-
-        if (directAccessToken) {
-          Auth.api.setFallbackToken(directAccessToken);
-          const stored = typeof window !== "undefined" ? localStorage.getItem("fallback_token") : null;
-          console.log("[OAUTH-FE] 5b token stored in localStorage=", !!stored, "| first10=", stored?.slice(0, 10));
-        } else {
-          console.warn("[OAUTH-FE] 5 NO directAccessToken in exchange response!");
-        }
-
-        console.log("[OAUTH-FE] 6 me starting");
-        let userData = await refreshUser();
+        // Fetch current user — should succeed with Authorization: Bearer header
+        console.log("[OAUTH-FE] 5 calling /users/me");
+        const userData = await refreshUser();
 
         if (userData) {
-          console.log("[OAUTH-FE] 7 me success");
-        } else {
-          console.log("[OAUTH-FE] 8 me failed");
-        }
-
-        // Fallback mode if cookie test fails and fallback code is available
-        if (!userData && fallbackCode) {
-          try {
-            console.warn("Cookie auth failed, attempting Bearer fallback...");
-            const fallbackRes = await Auth.fallbackOAuth2(fallbackCode);
-            const fallbackToken = fallbackRes.data?.data?.fallbackAccessToken;
-
-            if (fallbackToken) {
-              Auth.api.setFallbackToken(fallbackToken);
-              console.log("[OAUTH-FE] 6 me starting (bearer retry)");
-              userData = await refreshUser();
-              if (userData) {
-                console.log("[OAUTH-FE] 7 me success (bearer retry)");
-              } else {
-                console.log("[OAUTH-FE] 8 me failed (bearer retry)");
-              }
-            }
-          } catch (fallbackErr) {
-            console.error("Bearer fallback failed:", fallbackErr);
-          }
-        }
-
-        if (userData) {
-          console.log("[OAUTH-FE] 9 auth store updated");
+          console.log("[OAUTH-FE] 6 user resolved:", userData.email, "role:", userData.role);
           notify.success("Đăng nhập bằng Google thành công!");
-          const userRole = userData.role || "CLIENT";
-          const targetUrl = getRedirectUrlByRole(userRole);
-          console.log("[OAUTH-FE] 10 redirect starting to", targetUrl);
+          const targetUrl = getRedirectUrlByRole(userData.role || "CLIENT");
+          console.log("[OAUTH-FE] 7 redirecting to", targetUrl);
           window.location.assign(targetUrl);
-          console.log("[OAUTH-FE] 11 redirect issued");
         } else {
-          setErrorMessage("Không thể xác thực thông tin tài khoản người dùng.");
+          console.error("[OAUTH-FE] 6 /users/me returned null — clearing tokens");
+          localStorage.removeItem(ACCESS_TOKEN_KEY);
+          localStorage.removeItem(REFRESH_TOKEN_KEY);
+          Auth.api.setFallbackToken(null);
+          setErrorMessage("Không thể xác thực tài khoản. Vui lòng thử lại.");
         }
       } catch (err: any) {
-        console.error("[OAUTH-FE] 5 exchange failed", err);
-        const errorDetail = err?.response?.data?.message || err?.message || "Mã xác thực không hợp lệ hoặc đã hết hạn.";
-        setErrorMessage(`Đăng nhập Google thất bại: ${errorDetail}`);
+        console.error("[OAUTH-FE] error during OAuth success handling:", err);
+        localStorage.removeItem(ACCESS_TOKEN_KEY);
+        localStorage.removeItem(REFRESH_TOKEN_KEY);
+        Auth.api.setFallbackToken(null);
+        const detail = err?.response?.data?.message || err?.message || "Đã xảy ra lỗi không xác định.";
+        setErrorMessage(`Đăng nhập Google thất bại: ${detail}`);
       } finally {
         setLoading(false);
-        console.log("[OAUTH-FE] FINALLY loading=false");
       }
     }
 
-    void runOAuthExchange();
+    void handleOAuthSuccess();
   }, [refreshUser]);
 
   return (
@@ -150,7 +132,6 @@ function OAuth2SuccessContent() {
           <Alert severity="error" sx={{ width: "100%", borderRadius: "2px" }}>
             {errorMessage}
           </Alert>
-
           <Button
             variant="contained"
             color="primary"
@@ -158,13 +139,9 @@ function OAuth2SuccessContent() {
             fullWidth
             onClick={() => {
               hasExecutedRef.current = false;
-              router.replace("/login");
+              window.location.assign("/login");
             }}
-            sx={{
-              minHeight: 44,
-              borderRadius: 0,
-              fontWeight: 700,
-            }}
+            sx={{ minHeight: 44, borderRadius: 0, fontWeight: 700 }}
           >
             Thử đăng nhập lại
           </Button>

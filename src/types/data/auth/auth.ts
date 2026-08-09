@@ -54,17 +54,14 @@
       });
     }
 
-    static exchangeOAuth2Code(code: string) {
-      return this.api.post<IResponse<{ fallbackCode?: string; accessToken?: string }>>({
-        url: "/auth/oauth2/exchange",
-        data: { code },
-      });
-    }
-
-    static fallbackOAuth2(fallbackCode: string) {
-      return this.api.post<IResponse<{ fallbackAccessToken: string }>>({
-        url: "/auth/oauth2/fallback",
-        data: { fallbackCode },
+    /**
+     * Refresh access + refresh tokens using a Bearer-based refresh token (cross-domain flow).
+     * Returns new { accessToken, refreshToken } in the response body.
+     */
+    static oauth2Refresh(refreshToken: string) {
+      return this.api.post<IResponse<{ accessToken: string; refreshToken: string }>>({
+        url: "/auth/oauth2/refresh",
+        data: { refreshToken },
       });
     }
 
