@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -12,9 +12,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getRedirectUrlByRole } from "@/config/routes.config";
 import { notify } from "@/lib/notifications";
 
-// Global module-level locks to guard against React StrictMode double mounts / re-renders
+// Global set to prevent processing duplicate code strings
 const processedExchangeCodes = new Set<string>();
-let activeExchangeInitiated = false;
 
 export default function OAuth2SuccessPage() {
   const router = useRouter();
@@ -22,10 +21,11 @@ export default function OAuth2SuccessPage() {
   const { refreshUser } = useAuth();
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const hasInitiatedRef = useRef(false);
 
   useEffect(() => {
-    // If an exchange has already been initiated or completed, ignore subsequent re-renders
-    if (activeExchangeInitiated) {
+    // If exchange has already been initiated for this mount, ignore
+    if (hasInitiatedRef.current) {
       return;
     }
 
@@ -46,7 +46,7 @@ export default function OAuth2SuccessPage() {
     }
 
     // Synchronously set lock before any async operations or URL cleanup
-    activeExchangeInitiated = true;
+    hasInitiatedRef.current = true;
     processedExchangeCodes.add(code);
 
     // Clean URL immediately so one-time code is not stored in browser history
@@ -131,7 +131,7 @@ export default function OAuth2SuccessPage() {
             size="large"
             fullWidth
             onClick={() => {
-              activeExchangeInitiated = false;
+              hasInitiatedRef.current = false;
               router.replace("/login");
             }}
             sx={{
