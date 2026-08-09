@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -12,7 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getRedirectUrlByRole } from "@/config/routes.config";
 import { notify } from "@/lib/notifications";
 
-export default function OAuth2SuccessPage() {
+function OAuth2SuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { refreshUser } = useAuth();
@@ -21,8 +21,8 @@ export default function OAuth2SuccessPage() {
   const isExchangingRef = useRef(false);
 
   useEffect(() => {
-    // 1. Extract exchange code from searchParams or raw window location
-    let code: string | null = searchParams.get("code");
+    // Extract exchange code from searchParams or raw window location
+    let code: string | null = searchParams ? searchParams.get("code") : null;
     if (!code && typeof window !== "undefined") {
       const urlParams = new URLSearchParams(window.location.search);
       code = urlParams.get("code");
@@ -151,5 +151,27 @@ export default function OAuth2SuccessPage() {
         </Box>
       )}
     </Box>
+  );
+}
+
+export default function OAuth2SuccessPage() {
+  return (
+    <Suspense
+      fallback={
+        <Box
+          sx={{
+            minHeight: "100dvh",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            bgcolor: "background.default",
+          }}
+        >
+          <CircularProgress color="primary" size={42} />
+        </Box>
+      }
+    >
+      <OAuth2SuccessContent />
+    </Suspense>
   );
 }
