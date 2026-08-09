@@ -115,7 +115,16 @@ export default function ComboSelectionStep() {
 
   const remainingSeconds = useMemo(() => {
     if (!holdExpiresAt) return null;
-    const end = new Date(holdExpiresAt).getTime();
+    let end = new Date(holdExpiresAt).getTime();
+    if (Number.isNaN(end)) return null;
+
+    // Fix timezone offset issue: if backend returns UTC without 'Z' and browser parses as local
+    if (now - end > 60000 && !holdExpiresAt.includes("Z") && !holdExpiresAt.includes("+")) {
+      const utcEnd = new Date(`${holdExpiresAt}Z`).getTime();
+      if (utcEnd > now) {
+        end = utcEnd;
+      }
+    }
     return Math.max(0, Math.floor((end - now) / 1000));
   }, [holdExpiresAt, now]);
 

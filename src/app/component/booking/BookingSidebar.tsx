@@ -229,6 +229,7 @@ export default function BookingSidebar({
 
           <div className="flex flex-col gap-3">
             <button
+              type="button"
               onClick={actionButton.onClick}
               disabled={actionButton.disabled}
               className="w-full bg-[#c42d21] hover:bg-[#a3251b] disabled:opacity-50 disabled:cursor-not-allowed text-white py-4 rounded-xl font-bold shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2"
