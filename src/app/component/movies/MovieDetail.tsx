@@ -393,17 +393,12 @@ export default function MovieDetail({
     return [];
   }, [cinemaShowtimesResponse]);
 
-  const reviews = useMemo<ReviewViewModel[]>(() => {
-    const rawReviews = reviewsResponse?.data as unknown;
-
-    if (!Array.isArray(rawReviews)) {
-      return [];
-    }
-
-    return rawReviews
-      .flat()
-      .filter(isReviewViewModel);
-  }, [reviewsResponse?.data]);
+  const reviews = useMemo<any[]>(() => {
+    const raw = reviewsResponse as any;
+    if (Array.isArray(raw?.data)) return raw.data;
+    if (Array.isArray(raw)) return raw;
+    return [];
+  }, [reviewsResponse]);
 
   const averageRating =
     Number(
@@ -665,7 +660,7 @@ export default function MovieDetail({
     mutationFn: ({ userId, movieId, rating, comment }: { userId: number; movieId: number; rating: number; comment: string }) =>
       MovieReview.createComment(userId, movieId, rating, comment).queryFn(),
     onSuccess: (res) => {
-      notify.success(res.message || "Gửi đánh giá thành công.");
+      notify.success(res?.message || "Đánh giá thành công!");
       setCommentInput("");
       refetchReviews();
       refetchCanReview();
@@ -1532,6 +1527,8 @@ export default function MovieDetail({
                   {reviews.map(
                     (review, index) => {
                       const reviewerName =
+                        review.full_name ||
+                        review.fullName ||
                         review.userName ||
                         review.user?.fullName ||
                         "Khán giả";
